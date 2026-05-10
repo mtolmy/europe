@@ -12,8 +12,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="GeoMaster">
     <meta name="theme-color" content="#0f172a">
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     
     <style>
         :root {
@@ -71,7 +72,7 @@
         .btn-resume { background: #10b981; margin-top: 0; margin-bottom: 5px; }
         
         .hidden { display: none !important; }
-        .error-msg { color: #f87171; background: rgba(248, 113, 113, 0.1); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+        .error-msg { color: #f87171; background: rgba(248, 113, 113, 0.1); padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; text-align: center; }
     </style>
 </head>
 <body>
@@ -128,80 +129,63 @@
 
 <div id="info-overlay"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+
 <script>
-// --- КОНФИГУРАЦИЯ ДАННЫХ ---
 const CONFIG = {
     bounds: {
-        'Europe': [[35, -10], [70, 40]],
-        'Asia': [[-10, 35], [55, 145]],
-        'Africa': [[-35, -20], [38, 55]],
-        'North America': [[10, -130], [75, -50]],
-        'South America': [[-55, -85], [15, -35]],
-        'Oceania': [[-45, 110], [-5, 180]],
-        'World': [[-55, -170], [75, 170]]
+        'Europe': [[35, -10], [70, 40]], 'Asia': [[-10, 35], [55, 145]], 'Africa': [[-35, -20], [38, 55]],
+        'North America': [[10, -130], [75, -50]], 'South America': [[-55, -85], [15, -35]],
+        'Oceania': [[-45, 110], [-5, 180]], 'World': [[-55, -170], [75, 170]]
     },
-    colors: {
-        default: '#ffffff',
-        border: '#94a3b8',
-        correct: '#34d399',
-        incorrect: '#f87171',
-        hint: '#60a5fa'
-    }
+    colors: { default: '#ffffff', border: '#94a3b8', correct: '#34d399', incorrect: '#f87171', hint: '#60a5fa' }
 };
 
 const DB = {
     // ЕВРОПА (44)
-    "Russia":{name:"Россия", cap:"Москва", pop:"146 млн", flag:"🇷🇺", reg:"Europe"},
-    "Ukraine":{name:"Украина", cap:"Киев", pop:"41 млн", flag:"🇺🇦", reg:"Europe"},
-    "France":{name:"Франция", cap:"Париж", pop:"67 млн", flag:"🇫🇷", reg:"Europe"},
-    "Germany":{name:"Германия", cap:"Берлин", pop:"83 млн", flag:"🇩🇪", reg:"Europe"},
-    "Italy":{name:"Италия", cap:"Рим", pop:"59 млн", flag:"🇮🇹", reg:"Europe"},
-    "Spain":{name:"Испания", cap:"Мадрид", pop:"47 млн", flag:"🇪🇸", reg:"Europe"},
-    "United Kingdom":{name:"Великобритания", cap:"Лондон", pop:"67 млн", flag:"🇬🇧", reg:"Europe"},
-    "Poland":{name:"Польша", cap:"Варшава", pop:"38 млн", flag:"🇵🇱", reg:"Europe"},
-    "Romania":{name:"Румыния", cap:"Бухарест", pop:"19 млн", flag:"🇷🇴", reg:"Europe"},
-    "Netherlands":{name:"Нидерланды", cap:"Амстердам", pop:"17.5 млн", flag:"🇳🇱", reg:"Europe"},
-    "Belgium":{name:"Бельгия", cap:"Брюссель", pop:"11.6 млн", flag:"🇧🇪", reg:"Europe"},
-    "Czechia":{name:"Чехия", cap:"Прага", pop:"10.7 млн", flag:"🇨🇿", reg:"Europe"},
-    "Greece":{name:"Греция", cap:"Афины", pop:"10.4 млн", flag:"🇬🇷", reg:"Europe"},
-    "Portugal":{name:"Португалия", cap:"Лиссабон", pop:"10.3 млн", flag:"🇵🇹", reg:"Europe"},
-    "Sweden":{name:"Швеция", cap:"Стокгольм", pop:"10.4 млн", flag:"🇸🇪", reg:"Europe"},
-    "Hungary":{name:"Венгрия", cap:"Будапешт", pop:"9.7 млн", flag:"🇭🇺", reg:"Europe"},
-    "Belarus":{name:"Беларусь", cap:"Минск", pop:"9.3 млн", flag:"🇧🇾", reg:"Europe"},
-    "Austria":{name:"Австрия", cap:"Вена", pop:"8.9 млн", flag:"🇦🇹", reg:"Europe"},
-    "Serbia":{name:"Сербия", cap:"Белград", pop:"6.8 млн", flag:"🇷🇸", reg:"Europe"},
-    "Switzerland":{name:"Швейцария", cap:"Берн", pop:"8.7 млн", flag:"🇨🇭", reg:"Europe"},
-    "Bulgaria":{name:"Болгария", cap:"София", pop:"6.8 млн", flag:"🇧🇬", reg:"Europe"},
-    "Denmark":{name:"Дания", cap:"Копенгаген", pop:"5.8 млн", flag:"🇩🇰", reg:"Europe"},
-    "Finland":{name:"Финляндия", cap:"Хельсинки", pop:"5.5 млн", flag:"🇫🇮", reg:"Europe"},
-    "Slovakia":{name:"Словакия", cap:"Братислава", pop:"5.4 млн", flag:"🇸🇰", reg:"Europe"},
-    "Norway":{name:"Норвегия", cap:"Осло", pop:"5.4 млн", flag:"🇳🇴", reg:"Europe"},
-    "Ireland":{name:"Ирландия", cap:"Дублин", pop:"5 млн", flag:"🇮🇪", reg:"Europe"},
-    "Croatia":{name:"Хорватия", cap:"Загреб", pop:"4 млн", flag:"🇭🇷", reg:"Europe"},
-    "Moldova":{name:"Молдова", cap:"Кишинев", pop:"2.6 млн", flag:"🇲🇩", reg:"Europe"},
-    "Bosnia and Herzegovina":{name:"Босния и Герцеговина", cap:"Сараево", pop:"3.2 млн", flag:"🇧🇦", reg:"Europe"},
-    "Albania":{name:"Албания", cap:"Тирана", pop:"2.8 млн", flag:"🇦🇱", reg:"Europe"},
-    "Lithuania":{name:"Литва", cap:"Вильнюс", pop:"2.8 млн", flag:"🇱🇹", reg:"Europe"},
-    "North Macedonia":{name:"Сев. Македония", cap:"Скопье", pop:"2 млн", flag:"🇲🇰", reg:"Europe"},
-    "Slovenia":{name:"Словения", cap:"Любляна", pop:"2.1 млн", flag:"🇸🇮", reg:"Europe"},
-    "Latvia":{name:"Латвия", cap:"Рига", pop:"1.9 млн", flag:"🇱🇻", reg:"Europe"},
-    "Estonia":{name:"Эстония", cap:"Таллин", pop:"1.3 млн", flag:"🇪🇪", reg:"Europe"},
-    "Montenegro":{name:"Черногория", cap:"Подгорица", pop:"620 тыс.", flag:"🇲🇪", reg:"Europe"},
-    "Luxembourg":{name:"Люксембург", cap:"Люксембург", pop:"640 тыс.", flag:"🇱🇺", reg:"Europe"},
-    "Malta":{name:"Мальта", cap:"Валлетта", pop:"515 тыс.", flag:"🇲🇹", reg:"Europe"},
-    "Iceland":{name:"Исландия", cap:"Рейкьявик", pop:"370 тыс.", flag:"🇮🇸", reg:"Europe"},
-    "Andorra":{name:"Андорра", cap:"Андорра-ла-Велья", pop:"77 тыс.", flag:"🇦🇩", reg:"Europe"},
-    "Monaco":{name:"Монако", cap:"Монако", pop:"39 тыс.", flag:"🇲🇨", reg:"Europe"},
-    "Liechtenstein":{name:"Лихтенштейн", cap:"Вадуц", pop:"38 тыс.", flag:"🇱🇮", reg:"Europe"},
-    "San Marino":{name:"Сан-Марино", cap:"Сан-Марино", pop:"34 тыс.", flag:"🇸🇲", reg:"Europe"},
-    "Vatican":{name:"Ватикан", cap:"Ватикан", pop:"800 чел.", flag:"🇻🇦", reg:"Europe"},
+    "Russia":{name:"Россия", cap:"Москва", pop:"146 млн", flag:"🇷🇺", reg:"Europe"}, "Ukraine":{name:"Украина", cap:"Киев", pop:"41 млн", flag:"🇺🇦", reg:"Europe"},
+    "France":{name:"Франция", cap:"Париж", pop:"67 млн", flag:"🇫🇷", reg:"Europe"}, "Germany":{name:"Германия", cap:"Берлин", pop:"83 млн", flag:"🇩🇪", reg:"Europe"},
+    "Italy":{name:"Италия", cap:"Рим", pop:"59 млн", flag:"🇮🇹", reg:"Europe"}, "Spain":{name:"Испания", cap:"Мадрид", pop:"47 млн", flag:"🇪🇸", reg:"Europe"},
+    "United Kingdom":{name:"Великобритания", cap:"Лондон", pop:"67 млн", flag:"🇬🇧", reg:"Europe"}, "Poland":{name:"Польша", cap:"Варшава", pop:"38 млн", flag:"🇵🇱", reg:"Europe"},
+    "Romania":{name:"Румыния", cap:"Бухарест", pop:"19 млн", flag:"🇷🇴", reg:"Europe"}, "Netherlands":{name:"Нидерланды", cap:"Амстердам", pop:"17.5 млн", flag:"🇳🇱", reg:"Europe"},
+    "Belgium":{name:"Бельгия", cap:"Брюссель", pop:"11.6 млн", flag:"🇧🇪", reg:"Europe"}, "Czechia":{name:"Чехия", cap:"Прага", pop:"10.7 млн", flag:"🇨🇿", reg:"Europe"},
+    "Greece":{name:"Греция", cap:"Афины", pop:"10.4 млн", flag:"🇬🇷", reg:"Europe"}, "Portugal":{name:"Португалия", cap:"Лиссабон", pop:"10.3 млн", flag:"🇵🇹", reg:"Europe"},
+    "Sweden":{name:"Швеция", cap:"Стокгольм", pop:"10.4 млн", flag:"🇸🇪", reg:"Europe"}, "Hungary":{name:"Венгрия", cap:"Будапешт", pop:"9.7 млн", flag:"🇭🇺", reg:"Europe"},
+    "Belarus":{name:"Беларусь", cap:"Минск", pop:"9.3 млн", flag:"🇧🇾", reg:"Europe"}, "Austria":{name:"Австрия", cap:"Вена", pop:"8.9 млн", flag:"🇦🇹", reg:"Europe"},
+    "Serbia":{name:"Сербия", cap:"Белград", pop:"6.8 млн", flag:"🇷🇸", reg:"Europe"}, "Switzerland":{name:"Швейцария", cap:"Берн", pop:"8.7 млн", flag:"🇨🇭", reg:"Europe"},
+    "Bulgaria":{name:"Болгария", cap:"София", pop:"6.8 млн", flag:"🇧🇬", reg:"Europe"}, "Denmark":{name:"Дания", cap:"Копенгаген", pop:"5.8 млн", flag:"🇩🇰", reg:"Europe"},
+    "Finland":{name:"Финляндия", cap:"Хельсинки", pop:"5.5 млн", flag:"🇫🇮", reg:"Europe"}, "Slovakia":{name:"Словакия", cap:"Братислава", pop:"5.4 млн", flag:"🇸🇰", reg:"Europe"},
+    "Norway":{name:"Норвегия", cap:"Осло", pop:"5.4 млн", flag:"🇳🇴", reg:"Europe"}, "Ireland":{name:"Ирландия", cap:"Дублин", pop:"5 млн", flag:"🇮🇪", reg:"Europe"},
+    "Croatia":{name:"Хорватия", cap:"Загреб", pop:"4 млн", flag:"🇭🇷", reg:"Europe"}, "Moldova":{name:"Молдова", cap:"Кишинев", pop:"2.6 млн", flag:"🇲🇩", reg:"Europe"},
+    "Bosnia and Herzegovina":{name:"Босния и Герцеговина", cap:"Сараево", pop:"3.2 млн", flag:"🇧🇦", reg:"Europe"}, "Albania":{name:"Албания", cap:"Тирана", pop:"2.8 млн", flag:"🇦🇱", reg:"Europe"},
+    "Lithuania":{name:"Литва", cap:"Вильнюс", pop:"2.8 млн", flag:"🇱🇹", reg:"Europe"}, "North Macedonia":{name:"Сев. Македония", cap:"Скопье", pop:"2 млн", flag:"🇲🇰", reg:"Europe"},
+    "Slovenia":{name:"Словения", cap:"Любляна", pop:"2.1 млн", flag:"🇸🇮", reg:"Europe"}, "Latvia":{name:"Латвия", cap:"Рига", pop:"1.9 млн", flag:"🇱🇻", reg:"Europe"},
+    "Estonia":{name:"Эстония", cap:"Таллин", pop:"1.3 млн", flag:"🇪🇪", reg:"Europe"}, "Montenegro":{name:"Черногория", cap:"Подгорица", pop:"620 тыс.", flag:"🇲🇪", reg:"Europe"},
+    "Luxembourg":{name:"Люксембург", cap:"Люксембург", pop:"640 тыс.", flag:"🇱🇺", reg:"Europe"}, "Malta":{name:"Мальта", cap:"Валлетта", pop:"515 тыс.", flag:"🇲🇹", reg:"Europe"},
+    "Iceland":{name:"Исландия", cap:"Рейкьявик", pop:"370 тыс.", flag:"🇮🇸", reg:"Europe"}, "Andorra":{name:"Андорра", cap:"Андорра-ла-Велья", pop:"77 тыс.", flag:"🇦🇩", reg:"Europe"},
+    "Monaco":{name:"Монако", cap:"Монако", pop:"39 тыс.", flag:"🇲🇨", reg:"Europe"}, "Liechtenstein":{name:"Лихтенштейн", cap:"Вадуц", pop:"38 тыс.", flag:"🇱🇮", reg:"Europe"},
+    "San Marino":{name:"Сан-Марино", cap:"Сан-Марино", pop:"34 тыс.", flag:"🇸🇲", reg:"Europe"}, "Vatican":{name:"Ватикан", cap:"Ватикан", pop:"800 чел.", flag:"🇻🇦", reg:"Europe"},
 
     // АЗИЯ (48)
-    "China":{name:"Китай", cap:"Пекин", pop:"1.4 млрд", flag:"🇨🇳", reg:"Asia"},
-    "India":{name:"Индия", cap:"Нью-Дели", pop:"1.4 млрд", flag:"🇮🇳", reg:"Asia"},
-    "Indonesia":{name:"Индонезия", cap:"Джакарта", pop:"275 млн", flag:"🇮🇩", reg:"Asia"},
-    "Pakistan":{name:"Пакистан", cap:"Исламабад", pop:"235 млн", flag:"🇵🇰", reg:"Asia"},
-    "Bangladesh":{name:"Бангладеш", cap:"Дакка", pop:"169 млн", flag:"🇧🇩", reg:"Asia"},
-    "Japan":{name:"Япония", cap:"Токио", pop:"125 млн", flag:"🇯🇵", reg:"Asia"},
-    "
+    "China":{name:"Китай", cap:"Пекин", pop:"1.4 млрд", flag:"🇨🇳", reg:"Asia"}, "India":{name:"Индия", cap:"Нью-Дели", pop:"1.4 млрд", flag:"🇮🇳", reg:"Asia"},
+    "Indonesia":{name:"Индонезия", cap:"Джакарта", pop:"275 млн", flag:"🇮🇩", reg:"Asia"}, "Pakistan":{name:"Пакистан", cap:"Исламабад", pop:"235 млн", flag:"🇵🇰", reg:"Asia"},
+    "Bangladesh":{name:"Бангладеш", cap:"Дакка", pop:"169 млн", flag:"🇧🇩", reg:"Asia"}, "Japan":{name:"Япония", cap:"Токио", pop:"125 млн", flag:"🇯🇵", reg:"Asia"},
+    "Philippines":{name:"Филиппины", cap:"Манила", pop:"113 млн", flag:"🇵🇭", reg:"Asia"}, "Vietnam":{name:"Вьетнам", cap:"Ханой", pop:"98 млн", flag:"🇻🇳", reg:"Asia"},
+    "Turkey":{name:"Турция", cap:"Анкара", pop:"85 млн", flag:"🇹🇷", reg:"Asia"}, "Iran":{name:"Иран", cap:"Тегеран", pop:"87 млн", flag:"🇮🇷", reg:"Asia"},
+    "Thailand":{name:"Таиланд", cap:"Бангкок", pop:"71 млн", flag:"🇹🇭", reg:"Asia"}, "Myanmar":{name:"Мьянма", cap:"Нейпьидо", pop:"54 млн", flag:"🇲🇲", reg:"Asia"},
+    "South Korea":{name:"Южная Корея", cap:"Сеул", pop:"51 млн", flag:"🇰🇷", reg:"Asia"}, "Iraq":{name:"Ирак", cap:"Багдад", pop:"43 млн", flag:"🇮🇶", reg:"Asia"},
+    "Afghanistan":{name:"Афганистан", cap:"Кабул", pop:"40 млн", flag:"🇦🇫", reg:"Asia"}, "Saudi Arabia":{name:"Саудовская Аравия", cap:"Эр-Рияд", pop:"36 млн", flag:"🇸🇦", reg:"Asia"},
+    "Uzbekistan":{name:"Узбекистан", cap:"Ташкент", pop:"35 млн", flag:"🇺🇿", reg:"Asia"}, "Malaysia":{name:"Малайзия", cap:"Куала-Лумпур", pop:"33 млн", flag:"🇲🇾", reg:"Asia"},
+    "Yemen":{name:"Йемен", cap:"Сана", pop:"33 млн", flag:"🇾🇪", reg:"Asia"}, "Nepal":{name:"Непал", cap:"Катманду", pop:"30 млн", flag:"🇳🇵", reg:"Asia"},
+    "North Korea":{name:"КНДР", cap:"Пхеньян", pop:"26 млн", flag:"🇰🇵", reg:"Asia"}, "Sri Lanka":{name:"Шри-Ланка", cap:"Коломбо", pop:"22 млн", flag:"🇱🇰", reg:"Asia"},
+    "Kazakhstan":{name:"Казахстан", cap:"Астана", pop:"19.6 млн", flag:"🇰🇿", reg:"Asia"}, "Syria":{name:"Сирия", cap:"Дамаск", pop:"22 млн", flag:"🇸🇾", reg:"Asia"},
+    "Cambodia":{name:"Камбоджа", cap:"Пномпень", pop:"16 млн", flag:"🇰🇭", reg:"Asia"}, "Jordan":{name:"Иордания", cap:"Амман", pop:"11 млн", flag:"🇯🇴", reg:"Asia"},
+    "Azerbaijan":{name:"Азербайджан", cap:"Баку", pop:"10 млн", flag:"🇦🇿", reg:"Asia"}, "UAE":{name:"ОАЭ", cap:"Абу-Даби", pop:"9.4 млн", flag:"🇦🇪", reg:"Asia"},
+    "Tajikistan":{name:"Таджикистан", cap:"Душанбе", pop:"9.5 млн", flag:"🇹🇯", reg:"Asia"}, "Israel":{name:"Израиль", cap:"Иерусалим", pop:"9.3 млн", flag:"🇮🇱", reg:"Asia"},
+    "Laos":{name:"Лаос", cap:"Вьентьян", pop:"7.3 млн", flag:"🇱🇦", reg:"Asia"}, "Lebanon":{name:"Ливан", cap:"Бейрут", pop:"6.8 млн", flag:"🇱🇧", reg:"Asia"},
+    "Kyrgyzstan":{name:"Кыргызстан", cap:"Бишкек", pop:"6.6 млн", flag:"🇰🇬", reg:"Asia"}, "Turkmenistan":{name:"Туркменистан", cap:"Ашхабад", pop:"6 млн", flag:"🇹🇲", reg:"Asia"},
+    "Singapore":{name:"Сингапур", cap:"Сингапур", pop:"5.6 млн", flag:"🇸🇬", reg:"Asia"}, "Oman":{name:"Оман", cap:"Маскат", pop:"5 млн", flag:"🇴🇲", reg:"Asia"},
+    "Palestine":{name:"Палестина", cap:"Рамалла", pop:"5 млн", flag:"🇵🇸", reg:"Asia"}, "Kuwait":{name:"Кувейт", cap:"Эль-Кувейт", pop:"4.2 млн", flag:"🇰🇼", reg:"Asia"},
+    "Georgia":{name:"Грузия", cap:"Тбилиси", pop:"3.7 млн", flag:"🇬🇪", reg:"Asia"}, "Mongolia":{name:"Монголия", cap:"Улан-Батор", pop:"3.3 млн", flag:"🇲🇳", reg:"Asia"},
+    "Armenia":{name:"Армения", cap:"Ереван", pop:"2.9 млн", flag:"🇦🇲", reg:"Asia"}, "Qatar":{name:"Катар", cap:"Доха", pop:"2.9 млн", flag:"🇶🇦", reg:"Asia"},
+    "Bah
