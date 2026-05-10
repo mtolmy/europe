@@ -13,8 +13,9 @@
             --bg-color: #f8fafc;
             --panel-bg: #ffffff;
             --accent: #1e293b;
-            --correct: #86efac;
-            --incorrect: #fca5a5;
+            --correct: #86efac; /* Светло-зеленый */
+            --incorrect: #fca5a5; /* Розовый */
+            --target-hint: #60a5fa; /* Голубой для подсказки */
             --text: #0f172a;
         }
 
@@ -38,7 +39,7 @@
         #map {
             height: 90%;
             width: 100%;
-            background: #cbd5e1;
+            background: #cbd5e1; /* Цвет океана */
         }
 
         #bottom-panel {
@@ -57,6 +58,7 @@
         #question-box {
             display: flex;
             flex-direction: column;
+            flex: 1;
         }
 
         #task-label {
@@ -71,13 +73,18 @@
             font-size: 18px;
             font-weight: 600;
             color: var(--accent);
+            line-height: 1.1;
         }
 
         #score-box {
             text-align: right;
             font-size: 14px;
             font-weight: 600;
+            color: #475569;
+            white-space: nowrap;
         }
+
+        #current-score { color: var(--accent); }
 
         #info-overlay {
             position: absolute;
@@ -95,6 +102,7 @@
             border: 1px solid #e2e8f0;
             pointer-events: none;
             width: 80%;
+            max-width: 300px;
         }
 
         #start-overlay {
@@ -124,12 +132,13 @@
 
         .leaflet-bar { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
         .leaflet-bar a { background: white !important; color: var(--accent) !important; }
+        .clickable-country { cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="start-overlay">
-    <h1 style="font-size: 24px; margin: 0;">Европа: Контурная карта</h1>
+    <h1 style="font-size: 24px; margin: 0; text-align: center;">Европа: Контурная карта</h1>
     <p style="opacity: 0.8; margin: 10px 0;">Угадайте все страны региона</p>
     <button class="btn-main" onclick="startGame()">Начать квиз</button>
 </div>
@@ -142,7 +151,7 @@
             <span id="target-name">...</span>
         </div>
         <div id="score-box">
-            <span id="current-score">0</span> / <span id="total-count">0</span>
+            Угадано: <span id="current-score">0</span> из <span id="total-count">0</span>
         </div>
     </div>
 </div>
@@ -152,7 +161,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // Полный справочник данных на русском (Россия добавлена)
     const ruData = {
         "Albania": { name: "Албания", cap: "Тирана", pop: "2.8 млн" },
         "Andorra": { name: "Андорра", cap: "Андорра-ла-Велья", pop: "77 тыс." },
@@ -174,7 +182,6 @@
         "Iceland": { name: "Исландия", cap: "Рейкьявик", pop: "366 тыс." },
         "Ireland": { name: "Ирландия", cap: "Дублин", pop: "4.9 млн" },
         "Italy": { name: "Италия", cap: "Рим", pop: "59.1 млн" },
-        "Kosovo": { name: "Косово", cap: "Приштина", pop: "1.8 млн" },
         "Latvia": { name: "Латвия", cap: "Рига", pop: "1.9 млн" },
         "Liechtenstein": { name: "Лихтенштейн", cap: "Вадуц", pop: "38 тыс." },
         "Lithuania": { name: "Литва", cap: "Вильнюс", pop: "2.8 млн" },
@@ -202,63 +209,139 @@
         "Vatican": { name: "Ватикан", cap: "Ватикан", pop: "800 чел." }
     };
 
+    // Координаты карликовых государств, чтобы добавить их точками
+    const microstates = {
+        "Andorra": [42.5, 1.5],
+        "Liechtenstein": [47.14, 9.52],
+        "Malta": [35.9, 14.4],
+        "Monaco": [43.73, 7.42],
+        "San Marino": [43.94, 12.46],
+        "Vatican": [41.9, 12.45]
+    };
+
     let map, geoLayer;
     let quizQueue = [];
     let currentTarget = null;
     let solvedCount = 0;
+    let isWaiting = false; // Блокировка кликов во время анимации
+    let layersMap = {}; // Сохраняем слои по именам для управления цветом
+    let solvedSet = new Set(); // Отслеживаем угаданные страны
+
+    // Нормализация имен из разных баз карт
+    function getStandardName(name) {
+        if (name === "Russian Federation") return "Russia";
+        if (name === "Czech Republic") return "Czechia";
+        if (name === "Republic of Serbia") return "Serbia";
+        if (name === "Macedonia") return "North Macedonia";
+        if (name === "Bosnia and Herz.") return "Bosnia and Herzegovina";
+        return name;
+    }
 
     function initMap() {
         map = L.map('map', {
-            center: [54, 15],
-            zoom: 4,
+            center: [55, 20],
+            zoom: 3,
             zoomControl: true,
             attributionControl: false
         });
 
-        fetch('https://raw.githubusercontent.com/leakyMirror/map-of-europe/master/GeoJSON/europe.geojson')
+        // Загружаем карту всего мира
+        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
             .then(res => res.json())
             .then(data => {
-                const filteredFeatures = data.features.filter(f => ruData[f.properties.NAME]);
-                
-                geoLayer = L.geoJson({type: "FeatureCollection", features: filteredFeatures}, {
-                    style: {
-                        fillColor: '#f1f5f9',
-                        weight: 1,
-                        opacity: 1,
-                        color: '#94a3b8',
-                        fillOpacity: 1
+                L.geoJson(data, {
+                    style: (feature) => {
+                        const stdName = getStandardName(feature.properties.name);
+                        const isEurope = ruData[stdName] && !microstates[stdName]; // Карлики нарисуем отдельно
+                        return {
+                            fillColor: isEurope ? '#ffffff' : '#e2e8f0', // Европа белая, мир серый
+                            weight: 1,
+                            opacity: 1,
+                            color: '#94a3b8',
+                            fillOpacity: 1,
+                            className: isEurope ? 'clickable-country' : ''
+                        };
                     },
                     onEachFeature: (feature, layer) => {
-                        layer.on('click', () => handleCountryClick(feature, layer));
+                        const stdName = getStandardName(feature.properties.name);
+                        
+                        // Если это нужная нам страна (и не карлик, чтобы не было дублей)
+                        if (ruData[stdName] && !microstates[stdName]) {
+                            layersMap[stdName] = layer;
+                            quizQueue.push(stdName);
+                            layer.on('click', () => handleCountryClick(stdName, layer));
+                        }
                     }
                 }).addTo(map);
 
-                quizQueue = [...filteredFeatures];
+                // Добавляем карликовые государства вручную кружочками
+                for (let key in microstates) {
+                    let circle = L.circleMarker(microstates[key], {
+                        radius: 7,
+                        fillColor: '#ffffff',
+                        color: '#475569',
+                        weight: 2,
+                        fillOpacity: 1,
+                        className: 'clickable-country'
+                    }).addTo(map);
+                    
+                    layersMap[key] = circle;
+                    quizQueue.push(key);
+                    circle.on('click', () => handleCountryClick(key, circle));
+                }
+
                 document.getElementById('total-count').innerText = quizQueue.length;
             });
     }
 
-    function handleCountryClick(feature, layer) {
-        if (!currentTarget) return;
+    function handleCountryClick(clickedName, clickedLayer) {
+        if (isWaiting || !currentTarget) return;
 
-        const clickedName = feature.properties.NAME;
-        const targetName = currentTarget.properties.NAME;
-
-        if (clickedName === targetName) {
-            layer.setStyle({ fillColor: '#86efac', fillOpacity: 1 });
-            layer.off('click');
+        if (clickedName === currentTarget) {
+            // ПРАВИЛЬНО
+            clickedLayer.setStyle({ fillColor: 'var(--correct)' });
+            clickedLayer.off('click');
+            solvedSet.add(clickedName);
             showInfo(clickedName);
+            
             solvedCount++;
             document.getElementById('current-score').innerText = solvedCount;
-            setTimeout(nextQuestion, 1500);
-        } else {
-            layer.setStyle({ fillColor: '#fca5a5' });
-            setTimeout(() => {
-                if (clickedName !== targetName) layer.setStyle({ fillColor: '#f1f5f9' });
-            }, 600);
             
-            quizQueue.push(currentTarget);
-            nextQuestion();
+            isWaiting = true;
+            setTimeout(() => {
+                isWaiting = false;
+                nextQuestion();
+            }, 1500);
+
+        } else {
+            // НЕПРАВИЛЬНО
+            isWaiting = true;
+            
+            // Красим кликнутую страну в розовый
+            clickedLayer.setStyle({ fillColor: 'var(--incorrect)' });
+            
+            // Красим правильную страну (цель) в голубой для подсказки
+            const targetLayer = layersMap[currentTarget];
+            if (targetLayer) {
+                targetLayer.setStyle({ fillColor: 'var(--target-hint)' });
+                // Небольшой прыжок карты к целевой стране (опционально)
+                // map.panTo(targetLayer.getBounds().getCenter()); 
+            }
+
+            setTimeout(() => {
+                // Возвращаем белый цвет кликнутой стране (если она еще не была угадана ранее)
+                if (!solvedSet.has(clickedName)) {
+                    clickedLayer.setStyle({ fillColor: '#ffffff' });
+                }
+                // Возвращаем белый цвет целевой стране
+                if (targetLayer && !solvedSet.has(currentTarget)) {
+                    targetLayer.setStyle({ fillColor: '#ffffff' });
+                }
+                
+                quizQueue.push(currentTarget); // Возвращаем в конец очереди
+                isWaiting = false;
+                nextQuestion();
+            }, 1500);
         }
     }
 
@@ -267,17 +350,18 @@
         const overlay = document.getElementById('info-overlay');
         overlay.innerHTML = `<strong>${info.name}</strong><br><small>Столица: ${info.cap} | Нас.: ${info.pop}</small>`;
         overlay.style.display = 'block';
-        setTimeout(() => { overlay.style.display = 'none'; }, 2500);
+        setTimeout(() => { overlay.style.display = 'none'; }, 2000);
     }
 
     function nextQuestion() {
         if (quizQueue.length === 0) {
-            document.getElementById('target-name').innerText = "Победа! Все найдено.";
+            document.getElementById('task-label').innerText = "Игра окончена";
+            document.getElementById('target-name').innerText = "Поздравляю! Ты молодец, продолжай в том же духе!";
             currentTarget = null;
             return;
         }
         currentTarget = quizQueue.shift();
-        document.getElementById('target-name').innerText = ruData[currentTarget.properties.NAME].name;
+        document.getElementById('target-name').innerText = ruData[currentTarget].name;
     }
 
     function startGame() {
