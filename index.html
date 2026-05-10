@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Мировая Контурная Карта 2.0</title>
+    <title>Мировая Контурная Карта Pro</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -27,16 +27,13 @@
         }
 
         .app-layout { display: flex; flex-direction: column; height: 100vh; }
-        
-        /* 9/10 экрана - Карта */
         #map { height: 90%; width: 100%; background: #cbd5e1; }
 
-        /* 1/10 экрана - Панель с учетом Safe Area iPhone */
         #bottom-panel {
             height: 10%; background: var(--panel-bg);
             border-top: 1px solid #e2e8f0;
             display: flex; align-items: center; justify-content: space-between;
-            padding: 0 15px env(safe-area-inset-bottom) 15px; /* Адаптация под полосу iOS */
+            padding: 0 15px env(safe-area-inset-bottom) 15px;
             box-sizing: border-box; z-index: 1000;
             box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
         }
@@ -54,7 +51,6 @@
             font-weight: 600; cursor: pointer; text-transform: uppercase;
         }
 
-        /* Визуальный фидбек на карте */
         .clickable-country { cursor: pointer; outline: none; }
         .clickable-country:hover { fill-opacity: 0.7 !important; transition: 0.2s; }
 
@@ -88,10 +84,6 @@
             background: #60a5fa; color: white; font-size: 18px; font-weight: 700; cursor: pointer;
             margin-top: 10px;
         }
-
-        #resume-btn { background: #34d399; margin-bottom: 10px; }
-
-        #loading-text { font-size: 14px; opacity: 0.7; margin-top: 20px; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -100,25 +92,22 @@
 <div id="start-overlay">
     <div class="menu-card">
         <h1 style="margin: 0 0 10px 0; font-size: 28px;">Карта Мира</h1>
-        
         <div id="loading-text">Загрузка данных...</div>
-
         <div id="ui-content" class="hidden">
             <button id="resume-btn" class="btn-start hidden" onclick="resumeGame()">Продолжить игру</button>
-
-            <div class="section-title">1. Выберите режим</div>
+            <div class="section-title">Режим</div>
             <div class="grid-menu" id="mode-selector">
                 <button class="btn-menu active" onclick="setMode('name', this)">Названия</button>
                 <button class="btn-menu" onclick="setMode('cap', this)">Столицы</button>
                 <button class="btn-menu" onclick="setMode('flag', this)">Флаги</button>
             </div>
-
-            <div class="section-title">2. Регион</div>
+            <div class="section-title">Регион</div>
             <div class="grid-menu" id="region-selector">
                 <button class="btn-menu active" onclick="setReg('Europe', this)">Европа</button>
                 <button class="btn-menu" onclick="setReg('Asia', this)">Азия</button>
                 <button class="btn-menu" onclick="setReg('Africa', this)">Африка</button>
                 <button class="btn-menu" onclick="setReg('Americas', this)">Америка</button>
+                <button class="btn-menu" onclick="setReg('World', this)" style="grid-column: span 2;">Все страны мира 🌍</button>
             </div>
             <button class="btn-start" onclick="initNewGame()">Начать заново</button>
         </div>
@@ -144,50 +133,61 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // База данных стран (с флагами и столицами)
+    // Расширенная база данных (Столицы и Население для большинства стран)
     const ruData = {
-        "Russia": { name: "Россия", cap: "Москва", flag: "🇷🇺", reg: "Europe" },
-        "Ukraine": { name: "Украина", cap: "Киев", flag: "🇺🇦", reg: "Europe" },
-        "France": { name: "Франция", cap: "Париж", flag: "🇫🇷", reg: "Europe" },
-        "Germany": { name: "Германия", cap: "Берлин", flag: "🇩🇪", reg: "Europe" },
-        "Italy": { name: "Италия", cap: "Рим", flag: "🇮🇹", reg: "Europe" },
-        "Spain": { name: "Испания", cap: "Мадрид", flag: "🇪🇸", reg: "Europe" },
-        "United Kingdom": { name: "Великобритания", cap: "Лондон", flag: "🇬🇧", reg: "Europe" },
-        "Poland": { name: "Польша", cap: "Варшава", flag: "🇵🇱", reg: "Europe" },
-        "Kazakhstan": { name: "Казахстан", cap: "Астана", flag: "🇰🇿", reg: "Asia" },
-        "China": { name: "Китай", cap: "Пекин", flag: "🇨🇳", reg: "Asia" },
-        "Japan": { name: "Япония", cap: "Токио", flag: "🇯🇵", reg: "Asia" },
-        "India": { name: "Индия", cap: "Нью-Дели", flag: "🇮🇳", reg: "Asia" },
-        "Turkey": { name: "Турция", cap: "Анкара", flag: "🇹🇷", reg: "Asia" },
-        "USA": { name: "США", cap: "Вашингтон", flag: "🇺🇸", reg: "Americas" },
-        "Canada": { name: "Канада", cap: "Оттава", flag: "🇨🇦", reg: "Americas" },
-        "Brazil": { name: "Бразилия", cap: "Бразилиа", flag: "🇧🇷", reg: "Americas" },
-        "Egypt": { name: "Египет", cap: "Каир", flag: "🇪🇬", reg: "Africa" },
-        "South Africa": { name: "ЮАР", cap: "Претория", flag: "🇿🇦", reg: "Africa" },
-        "Nigeria": { name: "Нигерия", cap: "Абуджа", flag: "🇳🇬", reg: "Africa" },
-        // ... (другие страны добавляются автоматически из GeoJSON, если их нет здесь - будет только имя)
-    };
-
-    const microstates = {
-        "Vatican": [41.9, 12.45], "San Marino": [43.9, 12.4], "Monaco": [43.7, 7.4], "Andorra": [42.5, 1.5]
+        "Russia": { name: "Россия", cap: "Москва", pop: "146 млн", flag: "🇷🇺", reg: "Europe" },
+        "Ukraine": { name: "Украина", cap: "Киев", pop: "41 млн", flag: "🇺🇦", reg: "Europe" },
+        "France": { name: "Франция", cap: "Париж", pop: "67.8 млн", flag: "🇫🇷", reg: "Europe" },
+        "Germany": { name: "Германия", cap: "Берлин", pop: "83.2 млн", flag: "🇩🇪", reg: "Europe" },
+        "Italy": { name: "Италия", cap: "Рим", pop: "59.1 млн", flag: "🇮🇹", reg: "Europe" },
+        "Spain": { name: "Испания", cap: "Мадрид", pop: "47.4 млн", flag: "🇪🇸", reg: "Europe" },
+        "United Kingdom": { name: "Великобритания", cap: "Лондон", pop: "67.3 млн", flag: "🇬🇧", reg: "Europe" },
+        "Poland": { name: "Польша", cap: "Варшава", pop: "37.9 млн", flag: "🇵🇱", reg: "Europe" },
+        "Kazakhstan": { name: "Казахстан", cap: "Астана", pop: "19 млн", flag: "🇰🇿", reg: "Asia" },
+        "China": { name: "Китай", cap: "Пекин", pop: "1.4 млрд", flag: "🇨🇳", reg: "Asia" },
+        "Japan": { name: "Япония", cap: "Токио", pop: "125 млн", flag: "🇯🇵", reg: "Asia" },
+        "India": { name: "Индия", cap: "Нью-Дели", pop: "1.4 млрд", flag: "🇮🇳", reg: "Asia" },
+        "Turkey": { name: "Турция", cap: "Анкара", pop: "85.2 млн", flag: "🇹🇷", reg: "Asia" },
+        "USA": { name: "США", cap: "Вашингтон", pop: "331 млн", flag: "🇺🇸", reg: "Americas" },
+        "Canada": { name: "Канада", cap: "Оттава", pop: "38 млн", flag: "🇨🇦", reg: "Americas" },
+        "Brazil": { name: "Бразилия", cap: "Бразилиа", pop: "213 млн", flag: "🇧🇷", reg: "Americas" },
+        "Egypt": { name: "Египет", cap: "Каир", pop: "104 млн", flag: "🇪🇬", reg: "Africa" },
+        "South Africa": { name: "ЮАР", cap: "Претория", pop: "60 млн", flag: "🇿🇦", reg: "Africa" },
+        "Nigeria": { name: "Нигерия", cap: "Абуджа", pop: "211 млн", flag: "🇳🇬", reg: "Africa" },
+        "Belarus": { name: "Беларусь", cap: "Минск", pop: "9.4 млн", flag: "🇧🇾", reg: "Europe" },
+        "Sweden": { name: "Швеция", cap: "Стокгольм", pop: "10.4 млн", flag: "🇸🇪", reg: "Europe" },
+        "Norway": { name: "Норвегия", cap: "Осло", pop: "5.4 млн", flag: "🇳🇴", reg: "Europe" },
+        "Finland": { name: "Финляндия", cap: "Хельсинки", pop: "5.5 млн", flag: "🇫🇮", reg: "Europe" },
+        "Greece": { name: "Греция", cap: "Афины", pop: "10.4 млн", flag: "🇬🇷", reg: "Europe" },
+        "Portugal": { name: "Португалия", cap: "Лиссабон", pop: "10.3 млн", flag: "🇵🇹", reg: "Europe" },
+        "Austria": { name: "Австрия", cap: "Вена", pop: "8.9 млн", flag: "🇦🇹", reg: "Europe" },
+        "Switzerland": { name: "Швейцария", cap: "Берн", pop: "8.7 млн", flag: "🇨🇭", reg: "Europe" },
+        "Thailand": { name: "Таиланд", cap: "Бангкок", pop: "70 млн", flag: "🇹🇭", reg: "Asia" },
+        "Vietnam": { name: "Вьетнам", cap: "Ханой", pop: "97 млн", flag: "🇻🇳", reg: "Asia" },
+        "Indonesia": { name: "Индонезия", cap: "Джакарта", pop: "276 млн", flag: "🇮🇩", reg: "Asia" },
+        "Mexico": { name: "Мексика", cap: "Мехико", pop: "126 млн", flag: "🇲🇽", reg: "Americas" },
+        "Argentina": { name: "Аргентина", cap: "Буэнос-Айрес", pop: "45 млн", flag: "🇦🇷", reg: "Americas" },
+        "Australia": { name: "Австралия", cap: "Канберра", pop: "25.7 млн", flag: "🇦🇺", reg: "Asia" }, // В GeoJSON часто в Азии/Океании
+        "Morocco": { name: "Марокко", cap: "Рабат", pop: "37 млн", flag: "🇲🇦", reg: "Africa" },
+        "Algeria": { name: "Алжир", cap: "Алжир", pop: "44 млн", flag: "🇩🇿", reg: "Africa" },
+        "Kenya": { name: "Кения", cap: "Найроби", pop: "55 млн", flag: "🇰🇪", reg: "Africa" }
     };
 
     let map, geoData, currentMode = 'name', currentReg = 'Europe';
     let quizQueue = [], solvedCount = 0, currentTarget = null;
-    let isWaiting = false, layersMap = {}, timerId = null;
+    let isWaiting = false, layersMap = {}, timerId = null, currentRegionBounds = null;
 
     function getStandardName(n) {
         if (!n) return "";
-        // Политическая правка: Крым -> Россия
-        if (n.includes("Crimea") || n === "Autonomous Republic of Crimea") return "Russia";
+        if (n.includes("Crimea")) return "Russia"; // Политическая правка
         if (n === "Russian Federation") return "Russia";
         if (n === "United States of America") return "USA";
+        if (n === "Republic of Korea") return "South Korea";
         return n;
     }
 
     function initMap() {
         map = L.map('map', { center: [50, 20], zoom: 3, zoomControl: false, attributionControl: false });
-
         fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
             .then(res => res.json())
             .then(data => {
@@ -211,47 +211,41 @@
     }
 
     function initNewGame() {
-        solvedCount = 0;
-        quizQueue = [];
-        solvedSet = new Set();
-        startActualGame();
-    }
-
-    function resumeGame() {
-        const save = JSON.parse(localStorage.getItem('geoQuizSave'));
-        solvedCount = save.solvedCount;
-        quizQueue = save.quizQueue;
-        currentMode = save.mode;
-        currentReg = save.reg;
-        startActualGame(true);
+        solvedCount = 0; quizQueue = []; startActualGame();
     }
 
     function startActualGame(isResumed = false) {
         document.getElementById('start-overlay').style.opacity = '0';
         setTimeout(() => document.getElementById('start-overlay').style.display = 'none', 400);
 
-        // Отрисовка карты
         if(map.geoLayer) map.removeLayer(map.geoLayer);
         layersMap = {};
+        const tempFeatures = [];
 
         map.geoLayer = L.geoJson(geoData, {
-            style: (f) => {
-                return { fillColor: '#ffffff', weight: 1, color: '#94a3b8', fillOpacity: 1, className: 'clickable-country' };
-            },
+            style: { fillColor: '#ffffff', weight: 1, color: '#94a3b8', fillOpacity: 1 },
             onEachFeature: (f, l) => {
                 const name = getStandardName(f.properties.name);
                 layersMap[name] = l;
-                if(!isResumed && (currentReg === 'World' || (ruData[name] && ruData[name].reg === currentReg))) {
-                    quizQueue.push(name);
+                const data = ruData[name];
+                
+                if (currentReg === 'World' || (data && data.reg === currentReg)) {
+                    if(!isResumed) quizQueue.push(name);
+                    tempFeatures.push(l);
                 }
                 l.on('click', () => handleSelect(name, l));
             }
         }).addTo(map);
 
+        // Расчет границ региона для авто-центрирования
+        if (tempFeatures.length > 0) {
+            const group = L.featureGroup(tempFeatures);
+            currentRegionBounds = group.getBounds();
+            map.fitBounds(currentRegionBounds, { padding: [20, 20] });
+        }
+
         if(!isResumed) quizQueue.sort(() => Math.random() - 0.5);
-        
         document.getElementById('total-count').innerText = quizQueue.length + solvedCount;
-        updateUI();
         nextQuestion();
     }
 
@@ -259,7 +253,6 @@
         if (isWaiting || !currentTarget) return;
 
         if (name === currentTarget) {
-            // ВЕРНО
             layer.setStyle({ fillColor: 'var(--correct)' });
             showInfo(name);
             solvedCount++;
@@ -267,14 +260,12 @@
             saveProgress();
             timerId = setTimeout(nextQuestion, 3000);
         } else {
-            // ОШИБКА
             isWaiting = true;
             layer.setStyle({ fillColor: 'var(--incorrect)' });
             const targetLayer = layersMap[currentTarget];
             if (targetLayer) {
                 targetLayer.setStyle({ fillColor: 'var(--target-hint)' });
-                // Динамический зум flyToBounds
-                if(targetLayer.getBounds) map.flyToBounds(targetLayer.getBounds(), { padding: [50, 50], duration: 1 });
+                map.flyToBounds(targetLayer.getBounds(), { padding: [40, 40], duration: 1 });
             }
             quizQueue.push(currentTarget);
             timerId = setTimeout(() => {
@@ -287,22 +278,28 @@
 
     function nextQuestion() {
         isWaiting = false;
-        if (quizQueue.length === 0) {
-            document.getElementById('target-name').innerText = "Победа! Ты молодец!";
-            localStorage.removeItem('geoQuizSave');
+        if (quizQueue.length === 0 && solvedCount > 0) {
+            document.getElementById('target-name').innerText = "Победа! Все найдено.";
             return;
         }
+        
         currentTarget = quizQueue.shift();
+        
+        // Авто-центрирование региона при новом вопросе
+        if (currentReg === 'World') {
+            map.setView([20, 0], 2, { animate: true });
+        } else if (currentRegionBounds) {
+            map.flyToBounds(currentRegionBounds, { padding: [20, 20], duration: 1 });
+        }
+
         updateUI();
     }
 
     function skipDelay() {
         if (isWaiting) {
             clearTimeout(timerId);
-            const targetLayer = layersMap[currentTarget];
-            // Сброс цветов перед переходом
             Object.values(layersMap).forEach(l => {
-                if (l.options.fillColor === 'var(--incorrect)' || l.options.fillColor === 'var(--target-hint)') {
+                if (['var(--incorrect)', 'var(--target-hint)'].includes(l.options.fillColor)) {
                     l.setStyle({ fillColor: '#ffffff' });
                 }
             });
@@ -313,22 +310,20 @@
     function updateUI() {
         document.getElementById('current-score').innerText = solvedCount;
         if (!currentTarget) return;
-        
-        const data = ruData[currentTarget] || { name: currentTarget, cap: "?", flag: "🏳️" };
-        let qText = "";
-        if (currentMode === 'name') qText = data.name;
-        else if (currentMode === 'cap') qText = "Столица: " + data.cap;
-        else qText = "Чей флаг? " + data.flag;
-        
-        document.getElementById('target-name').innerText = qText;
+        const d = ruData[currentTarget] || { name: currentTarget, cap: "?", flag: "🏳️" };
+        let q = "";
+        if (currentMode === 'name') q = d.name;
+        else if (currentMode === 'cap') q = "Где столица: " + d.cap + "?";
+        else q = "Чей флаг? " + d.flag;
+        document.getElementById('target-name').innerText = q;
     }
 
     function showInfo(name) {
-        const d = ruData[name] || { name: name, cap: "н/д", flag: "" };
+        const d = ruData[name] || { name: name, cap: "н/д", pop: "н/д", flag: "📍" };
         const ov = document.getElementById('info-overlay');
-        ov.innerHTML = `<strong>${d.flag} ${d.name}</strong><br><small>Столица: ${d.cap}</small>`;
+        ov.innerHTML = `<strong>${d.flag} ${d.name}</strong><br><small>Столица: ${d.cap} | Население: ${d.pop}</small>`;
         ov.style.display = 'block';
-        setTimeout(() => ov.style.display = 'none', 2500);
+        setTimeout(() => ov.style.display = 'none', 3000);
     }
 
     function saveProgress() {
