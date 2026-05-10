@@ -2,334 +2,293 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Europe Geography Quiz | Minimalist Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Карта Европы | Квиз</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
         :root {
-            --bg-color: #fcfcfc;
-            --sidebar-bg: #ffffff;
-            --accent-color: #2d3436;
-            --correct-color: #a29bfe; /* Мягкий фиолетово-зеленый вместо кислотного */
-            --incorrect-color: #fab1a0; /* Пастельный розовый */
-            --fog-color: #e2e8f0;
-            --text-main: #2d3436;
-            --text-muted: #636e72;
+            --bg-color: #f8fafc;
+            --panel-bg: #ffffff;
+            --accent: #1e293b;
+            --correct: #86efac;
+            --incorrect: #fca5a5;
+            --text: #0f172a;
         }
 
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
+            width: 100%;
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
+            background: var(--bg-color);
+            color: var(--text);
             overflow: hidden;
         }
 
-        /* Layout */
-        .app-container {
-            display: flex;
-            height: 100vh;
-            width: 100vw;
-        }
-
-        /* Sidebar Style */
-        #sidebar {
-            width: 320px;
-            background: var(--sidebar-bg);
-            border-right: 1px solid #edf2f7;
+        .app-layout {
             display: flex;
             flex-direction: column;
-            padding: 40px 30px;
+            height: 100vh;
+        }
+
+        #map {
+            height: 90%;
+            width: 100%;
+            background: #cbd5e1;
+        }
+
+        #bottom-panel {
+            height: 10%;
+            background: var(--panel-bg);
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
             z-index: 1000;
-            box-shadow: 10px 0 30px rgba(0,0,0,0.02);
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
         }
 
-        h1 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            margin-bottom: 40px;
-            text-transform: uppercase;
+        #question-box {
+            display: flex;
+            flex-direction: column;
         }
 
-        .stat-item {
-            margin-bottom: 25px;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
+        #task-label {
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 5px;
+            color: #64748b;
+            margin-bottom: 2px;
         }
 
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 300;
-        }
-
-        #question-container {
-            margin-top: auto;
-            padding: 25px;
-            background: #f8fafc;
-            border-radius: 16px;
-            transition: all 0.5s ease;
-        }
-
-        #target-country {
-            font-size: 1.2rem;
+        #target-name {
+            font-size: 18px;
             font-weight: 600;
-            color: var(--accent-color);
-            display: block;
-            margin-top: 10px;
+            color: var(--accent);
         }
 
-        /* Map Style */
-        #map {
-            flex-grow: 1;
-            background-color: #f1f5f9; /* Цвет океана */
+        #score-box {
+            text-align: right;
+            font-size: 14px;
+            font-weight: 600;
         }
 
-        /* Info Toast (Capital & Pop) */
-        #info-toast {
+        #info-overlay {
             position: absolute;
-            bottom: 40px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            padding: 15px 30px;
-            border-radius: 50px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            padding: 12px 24px;
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             z-index: 2000;
-            animation: slideUp 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-            border: 1px solid rgba(0,0,0,0.05);
+            display: none;
             text-align: center;
+            border: 1px solid #e2e8f0;
+            pointer-events: none;
+            width: 80%;
         }
 
-        @keyframes slideUp {
-            from { transform: translate(-50%, 20px); opacity: 0; }
-            to { transform: translate(-50%, 0); opacity: 1; }
-        }
-
-        /* Leaflet Overrides */
-        .leaflet-container { background: #f1f5f9 !important; }
-        .leaflet-control-zoom { display: none; } /* Убираем лишние кнопки для минимализма */
-
-        /* Progress Bar */
-        .progress-container {
-            width: 100%;
-            height: 4px;
-            background: #edf2f7;
-            border-radius: 2px;
-            margin-top: 10px;
-            overflow: hidden;
-        }
-        #progress-bar {
-            height: 100%;
-            width: 0%;
-            background: var(--accent-color);
-            transition: width 0.4s ease;
-        }
-
-        .btn-start {
-            background: var(--accent-color);
+        #start-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--accent);
             color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 12px;
-            font-family: inherit;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: opacity 0.2s;
-            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            transition: opacity 0.5s;
         }
+
+        .btn-main {
+            background: white;
+            color: var(--accent);
+            border: none;
+            padding: 16px 40px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        .leaflet-bar { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
+        .leaflet-bar a { background: white !important; color: var(--accent) !important; }
     </style>
 </head>
 <body>
 
-<div class="app-container">
-    <aside id="sidebar">
-        <h1>Europe Quiz</h1>
-        
-        <div class="stat-item">
-            <div class="stat-label">Прогресс</div>
-            <div class="stat-value"><span id="score">0</span> / <span id="total">0</span></div>
-            <div class="progress-container">
-                <div id="progress-bar"></div>
-            </div>
-        </div>
-
-        <div class="stat-item">
-            <div class="stat-label">Время</div>
-            <div id="timer" class="stat-value">00:00</div>
-        </div>
-
-        <div id="question-container">
-            <div class="stat-label" id="q-label">Готовы начать?</div>
-            <span id="target-country">—</span>
-            <button class="btn-start" id="start-btn">Начать игру</button>
-        </div>
-    </aside>
-
-    <main id="map"></main>
+<div id="start-overlay">
+    <h1 style="font-size: 24px; margin: 0;">Европа: Контурная карта</h1>
+    <p style="opacity: 0.8; margin: 10px 0;">Угадайте все страны региона</p>
+    <button class="btn-main" onclick="startGame()">Начать квиз</button>
 </div>
 
-<div id="info-toast"></div>
+<div class="app-layout">
+    <div id="map"></div>
+    <div id="bottom-panel">
+        <div id="question-box">
+            <span id="task-label">Найдите на карте:</span>
+            <span id="target-name">...</span>
+        </div>
+        <div id="score-box">
+            <span id="current-score">0</span> / <span id="total-count">0</span>
+        </div>
+    </div>
+</div>
+
+<div id="info-overlay"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // Конфигурация данных (столицы и население — упрощенно)
-    const extraData = {
-        "France": { cap: "Париж", pop: "67.8 млн" },
-        "Germany": { cap: "Берлин", pop: "83.2 млн" },
-        "Ukraine": { cap: "Киев", pop: "41.1 млн" },
-        "Italy": { cap: "Рим", pop: "59.1 млн" },
-        "Spain": { cap: "Мадрид", pop: "47.4 млн" },
-        "Poland": { cap: "Варшава", pop: "37.7 млн" },
-        "United Kingdom": { cap: "Лондон", pop: "67.3 млн" },
-        "Norway": { cap: "Осло", pop: "5.4 млн" },
-        "Sweden": { cap: "Стокгольм", pop: "10.4 млн" },
-        "Finland": { cap: "Хельсинки", pop: "5.5 млн" }
-        // ... данные дополняются автоматически для крупных стран
+    // Полный справочник данных на русском (Россия добавлена)
+    const ruData = {
+        "Albania": { name: "Албания", cap: "Тирана", pop: "2.8 млн" },
+        "Andorra": { name: "Андорра", cap: "Андорра-ла-Велья", pop: "77 тыс." },
+        "Austria": { name: "Австрия", cap: "Вена", pop: "8.9 млн" },
+        "Belarus": { name: "Беларусь", cap: "Минск", pop: "9.3 млн" },
+        "Belgium": { name: "Бельгия", cap: "Брюссель", pop: "11.5 млн" },
+        "Bosnia and Herzegovina": { name: "Босния и Герцеговина", cap: "Сараево", pop: "3.2 млн" },
+        "Bulgaria": { name: "Болгария", cap: "София", pop: "6.9 млн" },
+        "Croatia": { name: "Хорватия", cap: "Загреб", pop: "4.0 млн" },
+        "Cyprus": { name: "Кипр", pop: "1.2 млн", cap: "Никосия" },
+        "Czechia": { name: "Чехия", cap: "Прага", pop: "10.7 млн" },
+        "Denmark": { name: "Дания", cap: "Копенгаген", pop: "5.8 млн" },
+        "Estonia": { name: "Эстония", cap: "Таллин", pop: "1.3 млн" },
+        "Finland": { name: "Финляндия", cap: "Хельсинки", pop: "5.5 млн" },
+        "France": { name: "Франция", cap: "Париж", pop: "67.8 млн" },
+        "Germany": { name: "Германия", cap: "Берлин", pop: "83.2 млн" },
+        "Greece": { name: "Греция", cap: "Афины", pop: "10.7 млн" },
+        "Hungary": { name: "Венгрия", cap: "Будапешт", pop: "9.7 млн" },
+        "Iceland": { name: "Исландия", cap: "Рейкьявик", pop: "366 тыс." },
+        "Ireland": { name: "Ирландия", cap: "Дублин", pop: "4.9 млн" },
+        "Italy": { name: "Италия", cap: "Рим", pop: "59.1 млн" },
+        "Kosovo": { name: "Косово", cap: "Приштина", pop: "1.8 млн" },
+        "Latvia": { name: "Латвия", cap: "Рига", pop: "1.9 млн" },
+        "Liechtenstein": { name: "Лихтенштейн", cap: "Вадуц", pop: "38 тыс." },
+        "Lithuania": { name: "Литва", cap: "Вильнюс", pop: "2.8 млн" },
+        "Luxembourg": { name: "Люксембург", cap: "Люксембург", pop: "632 тыс." },
+        "Malta": { name: "Мальта", cap: "Валлетта", pop: "514 тыс." },
+        "Moldova": { name: "Молдова", cap: "Кишинев", pop: "2.6 млн" },
+        "Monaco": { name: "Монако", cap: "Монако", pop: "38 тыс." },
+        "Montenegro": { name: "Черногория", cap: "Подгорица", pop: "622 тыс." },
+        "Netherlands": { name: "Нидерланды", cap: "Амстердам", pop: "17.4 млн" },
+        "North Macedonia": { name: "Северная Македония", cap: "Скопье", pop: "2.0 млн" },
+        "Norway": { name: "Норвегия", cap: "Осло", pop: "5.3 млн" },
+        "Poland": { name: "Польша", cap: "Варшава", pop: "37.9 млн" },
+        "Portugal": { name: "Португалия", cap: "Лиссабон", pop: "10.3 млн" },
+        "Romania": { name: "Румыния", cap: "Бухарест", pop: "19.2 млн" },
+        "Russia": { name: "Россия", cap: "Москва", pop: "146 млн" },
+        "San Marino": { name: "Сан-Марино", cap: "Сан-Марино", pop: "34 тыс." },
+        "Serbia": { name: "Сербия", cap: "Белград", pop: "6.9 млн" },
+        "Slovakia": { name: "Словакия", cap: "Братислава", pop: "5.4 млн" },
+        "Slovenia": { name: "Словения", cap: "Любляна", pop: "2.1 млн" },
+        "Spain": { name: "Испания", cap: "Мадрид", pop: "47.3 млн" },
+        "Sweden": { name: "Швеция", cap: "Стокгольм", pop: "10.3 млн" },
+        "Switzerland": { name: "Швейцария", cap: "Берн", pop: "8.6 млн" },
+        "Ukraine": { name: "Украина", cap: "Киев", pop: "41 млн" },
+        "United Kingdom": { name: "Великобритания", cap: "Лондон", pop: "67.1 млн" },
+        "Vatican": { name: "Ватикан", cap: "Ватикан", pop: "800 чел." }
     };
 
-    let map, geojsonLayer;
-    let countries = [];
-    let queue = [];
-    let currentCountry = null;
-    let score = 0;
-    let timerInterval;
-    let startTime;
+    let map, geoLayer;
+    let quizQueue = [];
+    let currentTarget = null;
+    let solvedCount = 0;
 
-    // Инициализация карты
     function initMap() {
         map = L.map('map', {
             center: [54, 15],
             zoom: 4,
-            zoomControl: false,
+            zoomControl: true,
             attributionControl: false
         });
 
-        // Загружаем границы стран Европы
         fetch('https://raw.githubusercontent.com/leakyMirror/map-of-europe/master/GeoJSON/europe.geojson')
             .then(res => res.json())
             .then(data => {
-                countries = data.features.filter(f => f.properties.NAME !== "Russia"); // Исключаем для фокуса на Европе
-                document.getElementById('total').innerText = countries.length;
-                renderMap(data);
+                const filteredFeatures = data.features.filter(f => ruData[f.properties.NAME]);
+                
+                geoLayer = L.geoJson({type: "FeatureCollection", features: filteredFeatures}, {
+                    style: {
+                        fillColor: '#f1f5f9',
+                        weight: 1,
+                        opacity: 1,
+                        color: '#94a3b8',
+                        fillOpacity: 1
+                    },
+                    onEachFeature: (feature, layer) => {
+                        layer.on('click', () => handleCountryClick(feature, layer));
+                    }
+                }).addTo(map);
+
+                quizQueue = [...filteredFeatures];
+                document.getElementById('total-count').innerText = quizQueue.length;
             });
     }
 
-    function renderMap(data) {
-        geojsonLayer = L.geoJson(data, {
-            style: styleInitial,
-            onEachFeature: onEachFeature
-        }).addTo(map);
-    }
+    function handleCountryClick(feature, layer) {
+        if (!currentTarget) return;
 
-    // "Туман войны" — начальный стиль
-    function styleInitial(feature) {
-        return {
-            fillColor: '#e2e8f0',
-            weight: 1,
-            opacity: 1,
-            color: 'white',
-            fillOpacity: 1
-        };
-    }
+        const clickedName = feature.properties.NAME;
+        const targetName = currentTarget.properties.NAME;
 
-    function onEachFeature(feature, layer) {
-        layer.on('click', (e) => {
-            if (!currentCountry) return;
-            checkAnswer(feature, layer);
-        });
-    }
-
-    function checkAnswer(feature, layer) {
-        const name = feature.properties.NAME;
-        
-        if (name === currentCountry.properties.NAME) {
-            // ВЕРНО
-            layer.setStyle({ fillColor: '#c3e6cb', fillOpacity: 1 }); // Светло-зеленый
-            showToast(name);
-            score++;
-            updateUI();
-            
-            setTimeout(nextQuestion, 1200);
+        if (clickedName === targetName) {
+            layer.setStyle({ fillColor: '#86efac', fillOpacity: 1 });
+            layer.off('click');
+            showInfo(clickedName);
+            solvedCount++;
+            document.getElementById('current-score').innerText = solvedCount;
+            setTimeout(nextQuestion, 1500);
         } else {
-            // НЕВЕРНО
-            layer.setStyle({ fillColor: '#f5c6cb' }); // Розовый
-            queue.push(currentCountry); // Возвращаем в конец
-            
-            // Кратковременная подсветка ошибки
+            layer.setStyle({ fillColor: '#fca5a5' });
             setTimeout(() => {
-                if (!layer.guessed) layer.setStyle({ fillColor: '#e2e8f0' });
-            }, 800);
+                if (clickedName !== targetName) layer.setStyle({ fillColor: '#f1f5f9' });
+            }, 600);
             
+            quizQueue.push(currentTarget);
             nextQuestion();
         }
     }
 
-    function updateUI() {
-        document.getElementById('score').innerText = score;
-        const progress = (score / countries.length) * 100;
-        document.getElementById('progress-bar').style.width = progress + '%';
-    }
-
-    function showToast(name) {
-        const toast = document.getElementById('info-toast');
-        const data = extraData[name] || { cap: "Уточняется", pop: "н/д" };
-        toast.innerHTML = `<strong>${name}</strong> <br> <span style="font-size:0.9rem; opacity:0.8">Столица: ${data.cap} | Население: ${data.pop}</span>`;
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    function showInfo(engName) {
+        const info = ruData[engName];
+        const overlay = document.getElementById('info-overlay');
+        overlay.innerHTML = `<strong>${info.name}</strong><br><small>Столица: ${info.cap} | Нас.: ${info.pop}</small>`;
+        overlay.style.display = 'block';
+        setTimeout(() => { overlay.style.display = 'none'; }, 2500);
     }
 
     function nextQuestion() {
-        if (queue.length === 0) {
-            finishGame();
+        if (quizQueue.length === 0) {
+            document.getElementById('target-name').innerText = "Победа! Все найдено.";
+            currentTarget = null;
             return;
         }
-        currentCountry = queue.shift();
-        document.getElementById('q-label').innerText = "Укажите на карте:";
-        document.getElementById('target-country').innerText = currentCountry.properties.NAME;
-    }
-
-    function startTimer() {
-        startTime = Date.now();
-        timerInterval = setInterval(() => {
-            const delta = Date.now() - startTime;
-            const minutes = Math.floor(delta / 60000);
-            const seconds = Math.floor((delta % 60000) / 1000);
-            document.getElementById('timer').innerText = 
-                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }, 1000);
+        currentTarget = quizQueue.shift();
+        document.getElementById('target-name').innerText = ruData[currentTarget.properties.NAME].name;
     }
 
     function startGame() {
-        score = 0;
-        queue = [...countries].sort(() => Math.random() - 0.5);
-        document.getElementById('start-btn').style.display = 'none';
-        updateUI();
-        startTimer();
+        document.getElementById('start-overlay').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('start-overlay').style.display = 'none';
+        }, 500);
+        
+        quizQueue.sort(() => Math.random() - 0.5);
         nextQuestion();
     }
-
-    function finishGame() {
-        clearInterval(timerInterval);
-        document.getElementById('target-country').innerText = "Блестяще! Вы знаете Европу.";
-        document.getElementById('q-label').innerText = "Игра окончена";
-    }
-
-    document.getElementById('start-btn').addEventListener('click', startGame);
 
     initMap();
 </script>
