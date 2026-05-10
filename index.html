@@ -10,80 +10,41 @@
     
     <style>
         :root {
-            --bg-color: #f8fafc;
-            --panel-bg: #ffffff;
-            --accent: #1e293b;
-            --correct: #86efac;
-            --incorrect: #fca5a5;
-            --target-hint: #60a5fa;
-            --text: #0f172a;
+            --bg-color: #f8fafc; --panel-bg: #ffffff; --accent: #1e293b;
+            --correct: #86efac; --incorrect: #fca5a5; --target-hint: #60a5fa; --text: #0f172a;
         }
-
-        body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-color); color: var(--text);
-            overflow: hidden;
-        }
-
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text); overflow: hidden; }
         .app-layout { display: flex; flex-direction: column; height: 100vh; }
         #map { height: 90%; width: 100%; background: #cbd5e1; }
-
         #bottom-panel {
-            height: 10%; background: var(--panel-bg);
-            border-top: 1px solid #e2e8f0;
+            height: 10%; background: var(--panel-bg); border-top: 1px solid #e2e8f0;
             display: flex; align-items: center; justify-content: space-between;
-            padding: 0 15px env(safe-area-inset-bottom) 15px;
-            box-sizing: border-box; z-index: 1000;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+            padding: 0 15px env(safe-area-inset-bottom) 15px; box-sizing: border-box; z-index: 1000;
         }
-
         #question-box { display: flex; flex-direction: column; flex: 1; }
         #task-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 2px; }
         #target-name { font-size: 16px; font-weight: 700; color: var(--accent); line-height: 1.1; }
-        
         .right-controls { display: flex; flex-direction: column; align-items: flex-end; }
         #score-box { font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; }
-        
-        .btn-small {
-            background: #e2e8f0; color: var(--accent); border: none;
-            padding: 5px 12px; border-radius: 6px; font-size: 11px;
-            font-weight: 600; cursor: pointer; text-transform: uppercase;
-        }
-
+        .btn-small { background: #e2e8f0; color: var(--accent); border: none; padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-transform: uppercase; }
         .clickable-country { cursor: pointer; outline: none; }
         .clickable-country:hover { fill-opacity: 0.7 !important; transition: 0.2s; }
-
         #info-overlay {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
-            padding: 12px 24px; border-radius: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            z-index: 2000; display: none; text-align: center; border: 1px solid #e2e8f0;
-            pointer-events: none; width: 85%; max-width: 350px;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); padding: 12px 24px;
+            border-radius: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 2000;
+            display: none; text-align: center; border: 1px solid #e2e8f0; pointer-events: none; width: 85%; max-width: 350px;
         }
-
         #start-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--accent); color: white;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 3000; transition: opacity 0.4s; overflow-y: auto; padding: 20px; box-sizing: border-box;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--accent); color: white;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; transition: opacity 0.4s; overflow-y: auto; padding: 20px; box-sizing: border-box;
         }
-
         .menu-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 20px; width: 100%; max-width: 400px; }
         .section-title { font-size: 12px; text-transform: uppercase; opacity: 0.6; margin: 15px 0 10px 0; letter-spacing: 1px; }
-        
         .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .btn-menu {
-            background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.1);
-            padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer;
-        }
+        .btn-menu { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
         .btn-menu.active { background: white; color: var(--accent); }
-        
-        .btn-start {
-            width: 100%; padding: 18px; border-radius: 15px; border: none;
-            background: #60a5fa; color: white; font-size: 18px; font-weight: 700; cursor: pointer;
-            margin-top: 10px;
-        }
+        .btn-start { width: 100%; padding: 18px; border-radius: 15px; border: none; background: #60a5fa; color: white; font-size: 18px; font-weight: 700; cursor: pointer; margin-top: 10px; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -94,7 +55,7 @@
         <h1 style="margin: 0 0 10px 0; font-size: 28px;">Карта Мира</h1>
         <div id="loading-text">Загрузка данных...</div>
         <div id="ui-content" class="hidden">
-            <button id="resume-btn" class="btn-start hidden" onclick="resumeGame()">Продолжить игру</button>
+            <button id="resume-btn" class="btn-start hidden" style="background:#34d399; margin-bottom:10px;" onclick="resumeGame()">Продолжить игру</button>
             <div class="section-title">Режим</div>
             <div class="grid-menu" id="mode-selector">
                 <button class="btn-menu active" onclick="setMode('name', this)">Названия</button>
@@ -107,7 +68,7 @@
                 <button class="btn-menu" onclick="setReg('Asia', this)">Азия</button>
                 <button class="btn-menu" onclick="setReg('Africa', this)">Африка</button>
                 <button class="btn-menu" onclick="setReg('Americas', this)">Америка</button>
-                <button class="btn-menu" onclick="setReg('World', this)" style="grid-column: span 2;">Все страны мира 🌍</button>
+                <button class="btn-menu" onclick="setReg('World', this)" style="grid-column: span 2; background: rgba(255,255,255,0.15);">Все страны мира 🌍</button>
             </div>
             <button class="btn-start" onclick="initNewGame()">Начать заново</button>
         </div>
@@ -131,208 +92,102 @@
 <div id="info-overlay"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-    // Расширенная база данных (Столицы и Население для большинства стран)
-    const ruData = {
-        "Russia": { name: "Россия", cap: "Москва", pop: "146 млн", flag: "🇷🇺", reg: "Europe" },
-        "Ukraine": { name: "Украина", cap: "Киев", pop: "41 млн", flag: "🇺🇦", reg: "Europe" },
-        "France": { name: "Франция", cap: "Париж", pop: "67.8 млн", flag: "🇫🇷", reg: "Europe" },
-        "Germany": { name: "Германия", cap: "Берлин", pop: "83.2 млн", flag: "🇩🇪", reg: "Europe" },
-        "Italy": { name: "Италия", cap: "Рим", pop: "59.1 млн", flag: "🇮🇹", reg: "Europe" },
-        "Spain": { name: "Испания", cap: "Мадрид", pop: "47.4 млн", flag: "🇪🇸", reg: "Europe" },
-        "United Kingdom": { name: "Великобритания", cap: "Лондон", pop: "67.3 млн", flag: "🇬🇧", reg: "Europe" },
-        "Poland": { name: "Польша", cap: "Варшава", pop: "37.9 млн", flag: "🇵🇱", reg: "Europe" },
-        "Kazakhstan": { name: "Казахстан", cap: "Астана", pop: "19 млн", flag: "🇰🇿", reg: "Asia" },
-        "China": { name: "Китай", cap: "Пекин", pop: "1.4 млрд", flag: "🇨🇳", reg: "Asia" },
-        "Japan": { name: "Япония", cap: "Токио", pop: "125 млн", flag: "🇯🇵", reg: "Asia" },
-        "India": { name: "Индия", cap: "Нью-Дели", pop: "1.4 млрд", flag: "🇮🇳", reg: "Asia" },
-        "Turkey": { name: "Турция", cap: "Анкара", pop: "85.2 млн", flag: "🇹🇷", reg: "Asia" },
-        "USA": { name: "США", cap: "Вашингтон", pop: "331 млн", flag: "🇺🇸", reg: "Americas" },
-        "Canada": { name: "Канада", cap: "Оттава", pop: "38 млн", flag: "🇨🇦", reg: "Americas" },
-        "Brazil": { name: "Бразилия", cap: "Бразилиа", pop: "213 млн", flag: "🇧🇷", reg: "Americas" },
-        "Egypt": { name: "Египет", cap: "Каир", pop: "104 млн", flag: "🇪🇬", reg: "Africa" },
-        "South Africa": { name: "ЮАР", cap: "Претория", pop: "60 млн", flag: "🇿🇦", reg: "Africa" },
-        "Nigeria": { name: "Нигерия", cap: "Абуджа", pop: "211 млн", flag: "🇳🇬", reg: "Africa" },
-        "Belarus": { name: "Беларусь", cap: "Минск", pop: "9.4 млн", flag: "🇧🇾", reg: "Europe" },
-        "Sweden": { name: "Швеция", cap: "Стокгольм", pop: "10.4 млн", flag: "🇸🇪", reg: "Europe" },
-        "Norway": { name: "Норвегия", cap: "Осло", pop: "5.4 млн", flag: "🇳🇴", reg: "Europe" },
-        "Finland": { name: "Финляндия", cap: "Хельсинки", pop: "5.5 млн", flag: "🇫🇮", reg: "Europe" },
-        "Greece": { name: "Греция", cap: "Афины", pop: "10.4 млн", flag: "🇬🇷", reg: "Europe" },
-        "Portugal": { name: "Португалия", cap: "Лиссабон", pop: "10.3 млн", flag: "🇵🇹", reg: "Europe" },
-        "Austria": { name: "Австрия", cap: "Вена", pop: "8.9 млн", flag: "🇦🇹", reg: "Europe" },
-        "Switzerland": { name: "Швейцария", cap: "Берн", pop: "8.7 млн", flag: "🇨🇭", reg: "Europe" },
-        "Thailand": { name: "Таиланд", cap: "Бангкок", pop: "70 млн", flag: "🇹🇭", reg: "Asia" },
-        "Vietnam": { name: "Вьетнам", cap: "Ханой", pop: "97 млн", flag: "🇻🇳", reg: "Asia" },
-        "Indonesia": { name: "Индонезия", cap: "Джакарта", pop: "276 млн", flag: "🇮🇩", reg: "Asia" },
-        "Mexico": { name: "Мексика", cap: "Мехико", pop: "126 млн", flag: "🇲🇽", reg: "Americas" },
-        "Argentina": { name: "Аргентина", cap: "Буэнос-Айрес", pop: "45 млн", flag: "🇦🇷", reg: "Americas" },
-        "Australia": { name: "Австралия", cap: "Канберра", pop: "25.7 млн", flag: "🇦🇺", reg: "Asia" }, // В GeoJSON часто в Азии/Океании
-        "Morocco": { name: "Марокко", cap: "Рабат", pop: "37 млн", flag: "🇲🇦", reg: "Africa" },
-        "Algeria": { name: "Алжир", cap: "Алжир", pop: "44 млн", flag: "🇩🇿", reg: "Africa" },
-        "Kenya": { name: "Кения", cap: "Найроби", pop: "55 млн", flag: "🇰🇪", reg: "Africa" }
+    // ИДЕАЛЬНЫЕ КООРДИНАТЫ ДЛЯ ЦЕНТРИРОВАНИЯ ЭКРАНА [Юго-Запад, Северо-Восток]
+    const regionBounds = {
+        'Europe': [[35, -10], [70, 40]],
+        'Asia': [[5, 35], [70, 140]],
+        'Africa': [[-35, -20], [38, 55]],
+        'Americas': [[-55, -130], [70, -35]],
+        'World': [[-60, -170], [80, 170]]
     };
 
-    let map, geoData, currentMode = 'name', currentReg = 'Europe';
-    let quizQueue = [], solvedCount = 0, currentTarget = null;
-    let isWaiting = false, layersMap = {}, timerId = null, currentRegionBounds = null;
-
-    function getStandardName(n) {
-        if (!n) return "";
-        if (n.includes("Crimea")) return "Russia"; // Политическая правка
-        if (n === "Russian Federation") return "Russia";
-        if (n === "United States of America") return "USA";
-        if (n === "Republic of Korea") return "South Korea";
-        return n;
-    }
-
-    function initMap() {
-        map = L.map('map', { center: [50, 20], zoom: 3, zoomControl: false, attributionControl: false });
-        fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
-            .then(res => res.json())
-            .then(data => {
-                geoData = data;
-                document.getElementById('loading-text').classList.add('hidden');
-                document.getElementById('ui-content').classList.remove('hidden');
-                if(localStorage.getItem('geoQuizSave')) document.getElementById('resume-btn').classList.remove('hidden');
-            });
-    }
-
-    function setMode(m, btn) {
-        currentMode = m;
-        document.querySelectorAll('#mode-selector .btn-menu').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    }
-
-    function setReg(r, btn) {
-        currentReg = r;
-        document.querySelectorAll('#region-selector .btn-menu').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    }
-
-    function initNewGame() {
-        solvedCount = 0; quizQueue = []; startActualGame();
-    }
-
-    function startActualGame(isResumed = false) {
-        document.getElementById('start-overlay').style.opacity = '0';
-        setTimeout(() => document.getElementById('start-overlay').style.display = 'none', 400);
-
-        if(map.geoLayer) map.removeLayer(map.geoLayer);
-        layersMap = {};
-        const tempFeatures = [];
-
-        map.geoLayer = L.geoJson(geoData, {
-            style: { fillColor: '#ffffff', weight: 1, color: '#94a3b8', fillOpacity: 1 },
-            onEachFeature: (f, l) => {
-                const name = getStandardName(f.properties.name);
-                layersMap[name] = l;
-                const data = ruData[name];
-                
-                if (currentReg === 'World' || (data && data.reg === currentReg)) {
-                    if(!isResumed) quizQueue.push(name);
-                    tempFeatures.push(l);
-                }
-                l.on('click', () => handleSelect(name, l));
-            }
-        }).addTo(map);
-
-        // Расчет границ региона для авто-центрирования
-        if (tempFeatures.length > 0) {
-            const group = L.featureGroup(tempFeatures);
-            currentRegionBounds = group.getBounds();
-            map.fitBounds(currentRegionBounds, { padding: [20, 20] });
-        }
-
-        if(!isResumed) quizQueue.sort(() => Math.random() - 0.5);
-        document.getElementById('total-count').innerText = quizQueue.length + solvedCount;
-        nextQuestion();
-    }
-
-    function handleSelect(name, layer) {
-        if (isWaiting || !currentTarget) return;
-
-        if (name === currentTarget) {
-            layer.setStyle({ fillColor: 'var(--correct)' });
-            showInfo(name);
-            solvedCount++;
-            isWaiting = true;
-            saveProgress();
-            timerId = setTimeout(nextQuestion, 3000);
-        } else {
-            isWaiting = true;
-            layer.setStyle({ fillColor: 'var(--incorrect)' });
-            const targetLayer = layersMap[currentTarget];
-            if (targetLayer) {
-                targetLayer.setStyle({ fillColor: 'var(--target-hint)' });
-                map.flyToBounds(targetLayer.getBounds(), { padding: [40, 40], duration: 1 });
-            }
-            quizQueue.push(currentTarget);
-            timerId = setTimeout(() => {
-                layer.setStyle({ fillColor: '#ffffff' });
-                if(targetLayer) targetLayer.setStyle({ fillColor: '#ffffff' });
-                nextQuestion();
-            }, 3000);
-        }
-    }
-
-    function nextQuestion() {
-        isWaiting = false;
-        if (quizQueue.length === 0 && solvedCount > 0) {
-            document.getElementById('target-name').innerText = "Победа! Все найдено.";
-            return;
-        }
+    // РАСШИРЕННАЯ БАЗА СТРАН (>160 государств)
+    const ruData = {
+        // ЕВРОПА
+        "Russia": {name:"Россия", cap:"Москва", pop:"146 млн", flag:"🇷🇺", reg:"Europe"},
+        "Ukraine": {name:"Украина", cap:"Киев", pop:"41 млн", flag:"🇺🇦", reg:"Europe"},
+        "France": {name:"Франция", cap:"Париж", pop:"67 млн", flag:"🇫🇷", reg:"Europe"},
+        "Germany": {name:"Германия", cap:"Берлин", pop:"83 млн", flag:"🇩🇪", reg:"Europe"},
+        "Italy": {name:"Италия", cap:"Рим", pop:"59 млн", flag:"🇮🇹", reg:"Europe"},
+        "Spain": {name:"Испания", cap:"Мадрид", pop:"47 млн", flag:"🇪🇸", reg:"Europe"},
+        "United Kingdom": {name:"Великобритания", cap:"Лондон", pop:"67 млн", flag:"🇬🇧", reg:"Europe"},
+        "Poland": {name:"Польша", cap:"Варшава", pop:"38 млн", flag:"🇵🇱", reg:"Europe"},
+        "Belarus": {name:"Беларусь", cap:"Минск", pop:"9.3 млн", flag:"🇧🇾", reg:"Europe"},
+        "Sweden": {name:"Швеция", cap:"Стокгольм", pop:"10.4 млн", flag:"🇸🇪", reg:"Europe"},
+        "Norway": {name:"Норвегия", cap:"Осло", pop:"5.4 млн", flag:"🇳🇴", reg:"Europe"},
+        "Finland": {name:"Финляндия", cap:"Хельсинки", pop:"5.5 млн", flag:"🇫🇮", reg:"Europe"},
+        "Greece": {name:"Греция", cap:"Афины", pop:"10.4 млн", flag:"🇬🇷", reg:"Europe"},
+        "Portugal": {name:"Португалия", cap:"Лиссабон", pop:"10.3 млн", flag:"🇵🇹", reg:"Europe"},
+        "Austria": {name:"Австрия", cap:"Вена", pop:"8.9 млн", flag:"🇦🇹", reg:"Europe"},
+        "Switzerland": {name:"Швейцария", cap:"Берн", pop:"8.7 млн", flag:"🇨🇭", reg:"Europe"},
+        "Romania": {name:"Румыния", cap:"Бухарест", pop:"19 млн", flag:"🇷🇴", reg:"Europe"},
+        "Netherlands": {name:"Нидерланды", cap:"Амстердам", pop:"17.5 млн", flag:"🇳🇱", reg:"Europe"},
+        "Belgium": {name:"Бельгия", cap:"Брюссель", pop:"11.6 млн", flag:"🇧🇪", reg:"Europe"},
+        "Czechia": {name:"Чехия", cap:"Прага", pop:"10.7 млн", flag:"🇨🇿", reg:"Europe"},
+        "Hungary": {name:"Венгрия", cap:"Будапешт", pop:"9.7 млн", flag:"🇭🇺", reg:"Europe"},
+        "Serbia": {name:"Сербия", cap:"Белград", pop:"6.8 млн", flag:"🇷🇸", reg:"Europe"},
+        "Bulgaria": {name:"Болгария", cap:"София", pop:"6.8 млн", flag:"🇧🇬", reg:"Europe"},
+        "Denmark": {name:"Дания", cap:"Копенгаген", pop:"5.8 млн", flag:"🇩🇰", reg:"Europe"},
+        "Slovakia": {name:"Словакия", cap:"Братислава", pop:"5.4 млн", flag:"🇸🇰", reg:"Europe"},
+        "Ireland": {name:"Ирландия", cap:"Дублин", pop:"5 млн", flag:"🇮🇪", reg:"Europe"},
+        "Croatia": {name:"Хорватия", cap:"Загреб", pop:"4 млн", flag:"🇭🇷", reg:"Europe"},
+        "Lithuania": {name:"Литва", cap:"Вильнюс", pop:"2.8 млн", flag:"🇱🇹", reg:"Europe"},
+        "Latvia": {name:"Латвия", cap:"Рига", pop:"1.9 млн", flag:"🇱🇻", reg:"Europe"},
+        "Estonia": {name:"Эстония", cap:"Таллин", pop:"1.3 млн", flag:"🇪🇪", reg:"Europe"},
+        "Bosnia and Herzegovina": {name:"Босния и Герц.", cap:"Сараево", pop:"3.2 млн", flag:"🇧🇦", reg:"Europe"},
+        "Albania": {name:"Албания", cap:"Тирана", pop:"2.8 млн", flag:"🇦🇱", reg:"Europe"},
+        "Moldova": {name:"Молдова", cap:"Кишинев", pop:"2.6 млн", flag:"🇲🇩", reg:"Europe"},
+        "Slovenia": {name:"Словения", cap:"Любляна", pop:"2.1 млн", flag:"🇸🇮", reg:"Europe"},
+        "North Macedonia": {name:"Сев. Македония", cap:"Скопье", pop:"2 млн", flag:"🇲🇰", reg:"Europe"},
         
-        currentTarget = quizQueue.shift();
-        
-        // Авто-центрирование региона при новом вопросе
-        if (currentReg === 'World') {
-            map.setView([20, 0], 2, { animate: true });
-        } else if (currentRegionBounds) {
-            map.flyToBounds(currentRegionBounds, { padding: [20, 20], duration: 1 });
-        }
+        // АЗИЯ
+        "China": {name:"Китай", cap:"Пекин", pop:"1.4 млрд", flag:"🇨🇳", reg:"Asia"},
+        "India": {name:"Индия", cap:"Нью-Дели", pop:"1.4 млрд", flag:"🇮🇳", reg:"Asia"},
+        "Kazakhstan": {name:"Казахстан", cap:"Астана", pop:"19.6 млн", flag:"🇰🇿", reg:"Asia"},
+        "Japan": {name:"Япония", cap:"Токио", pop:"125 млн", flag:"🇯🇵", reg:"Asia"},
+        "Turkey": {name:"Турция", cap:"Анкара", pop:"85 млн", flag:"🇹🇷", reg:"Asia"},
+        "Iran": {name:"Иран", cap:"Тегеран", pop:"87 млн", flag:"🇮🇷", reg:"Asia"},
+        "Saudi Arabia": {name:"Саудовская Аравия", cap:"Эр-Рияд", pop:"36 млн", flag:"🇸🇦", reg:"Asia"},
+        "Indonesia": {name:"Индонезия", cap:"Джакарта", pop:"275 млн", flag:"🇮🇩", reg:"Asia"},
+        "Pakistan": {name:"Пакистан", cap:"Исламабад", pop:"235 млн", flag:"🇵🇰", reg:"Asia"},
+        "Bangladesh": {name:"Бангладеш", cap:"Дакка", pop:"169 млн", flag:"🇧🇩", reg:"Asia"},
+        "Philippines": {name:"Филиппины", cap:"Манила", pop:"113 млн", flag:"🇵🇭", reg:"Asia"},
+        "Vietnam": {name:"Вьетнам", cap:"Ханой", pop:"98 млн", flag:"🇻🇳", reg:"Asia"},
+        "Thailand": {name:"Таиланд", cap:"Бангкок", pop:"71 млн", flag:"🇹🇭", reg:"Asia"},
+        "Myanmar": {name:"Мьянма", cap:"Нейпьидо", pop:"54 млн", flag:"🇲🇲", reg:"Asia"},
+        "South Korea": {name:"Южная Корея", cap:"Сеул", pop:"51 млн", flag:"🇰🇷", reg:"Asia"},
+        "Iraq": {name:"Ирак", cap:"Багдад", pop:"43 млн", flag:"🇮🇶", reg:"Asia"},
+        "Afghanistan": {name:"Афганистан", cap:"Кабул", pop:"40 млн", flag:"🇦🇫", reg:"Asia"},
+        "Uzbekistan": {name:"Узбекистан", cap:"Ташкент", pop:"35 млн", flag:"🇺🇿", reg:"Asia"},
+        "Malaysia": {name:"Малайзия", cap:"Куала-Лумпур", pop:"33 млн", flag:"🇲🇾", reg:"Asia"},
+        "Yemen": {name:"Йемен", cap:"Сана", pop:"33 млн", flag:"🇾🇪", reg:"Asia"},
+        "Nepal": {name:"Непал", cap:"Катманду", pop:"30 млн", flag:"🇳🇵", reg:"Asia"},
+        "North Korea": {name:"КНДР", cap:"Пхеньян", pop:"26 млн", flag:"🇰🇵", reg:"Asia"},
+        "Syria": {name:"Сирия", cap:"Дамаск", pop:"22 млн", flag:"🇸🇾", reg:"Asia"},
+        "Sri Lanka": {name:"Шри-Ланка", cap:"Коломбо", pop:"22 млн", flag:"🇱🇰", reg:"Asia"},
+        "Cambodia": {name:"Камбоджа", cap:"Пномпень", pop:"16 млн", flag:"🇰🇭", reg:"Asia"},
+        "Jordan": {name:"Иордания", cap:"Амман", pop:"11 млн", flag:"🇯🇴", reg:"Asia"},
+        "Azerbaijan": {name:"Азербайджан", cap:"Баку", pop:"10 млн", flag:"🇦🇿", reg:"Asia"},
+        "United Arab Emirates": {name:"ОАЭ", cap:"Абу-Даби", pop:"9.4 млн", flag:"🇦🇪", reg:"Asia"},
+        "Tajikistan": {name:"Таджикистан", cap:"Душанбе", pop:"9.5 млн", flag:"🇹🇯", reg:"Asia"},
+        "Israel": {name:"Израиль", cap:"Иерусалим", pop:"9.3 млн", flag:"🇮🇱", reg:"Asia"},
+        "Laos": {name:"Лаос", cap:"Вьентьян", pop:"7.3 млн", flag:"🇱🇦", reg:"Asia"},
+        "Kyrgyzstan": {name:"Кыргызстан", cap:"Бишкек", pop:"6.6 млн", flag:"🇰🇬", reg:"Asia"},
+        "Turkmenistan": {name:"Туркменистан", cap:"Ашхабад", pop:"6 млн", flag:"🇹🇲", reg:"Asia"},
+        "Oman": {name:"Оман", cap:"Маскат", pop:"5 млн", flag:"🇴🇲", reg:"Asia"},
+        "Mongolia": {name:"Монголия", cap:"Улан-Батор", pop:"3.3 млн", flag:"🇲🇳", reg:"Asia"},
+        "Armenia": {name:"Армения", cap:"Ереван", pop:"2.9 млн", flag:"🇦🇲", reg:"Asia"},
+        "Georgia": {name:"Грузия", cap:"Тбилиси", pop:"3.7 млн", flag:"🇬🇪", reg:"Asia"},
+        "Kuwait": {name:"Кувейт", cap:"Эль-Кувейт", pop:"4.2 млн", flag:"🇰🇼", reg:"Asia"},
 
-        updateUI();
-    }
-
-    function skipDelay() {
-        if (isWaiting) {
-            clearTimeout(timerId);
-            Object.values(layersMap).forEach(l => {
-                if (['var(--incorrect)', 'var(--target-hint)'].includes(l.options.fillColor)) {
-                    l.setStyle({ fillColor: '#ffffff' });
-                }
-            });
-            nextQuestion();
-        }
-    }
-
-    function updateUI() {
-        document.getElementById('current-score').innerText = solvedCount;
-        if (!currentTarget) return;
-        const d = ruData[currentTarget] || { name: currentTarget, cap: "?", flag: "🏳️" };
-        let q = "";
-        if (currentMode === 'name') q = d.name;
-        else if (currentMode === 'cap') q = "Где столица: " + d.cap + "?";
-        else q = "Чей флаг? " + d.flag;
-        document.getElementById('target-name').innerText = q;
-    }
-
-    function showInfo(name) {
-        const d = ruData[name] || { name: name, cap: "н/д", pop: "н/д", flag: "📍" };
-        const ov = document.getElementById('info-overlay');
-        ov.innerHTML = `<strong>${d.flag} ${d.name}</strong><br><small>Столица: ${d.cap} | Население: ${d.pop}</small>`;
-        ov.style.display = 'block';
-        setTimeout(() => ov.style.display = 'none', 3000);
-    }
-
-    function saveProgress() {
-        const data = { quizQueue, solvedCount, mode: currentMode, reg: currentReg };
-        localStorage.setItem('geoQuizSave', JSON.stringify(data));
-    }
-
-    initMap();
-</script>
-
-</body>
-</html>
+        // АФРИКА
+        "Egypt": {name:"Египет", cap:"Каир", pop:"104 млн", flag:"🇪🇬", reg:"Africa"},
+        "Nigeria": {name:"Нигерия", cap:"Абуджа", pop:"211 млн", flag:"🇳🇬", reg:"Africa"},
+        "South Africa": {name:"ЮАР", cap:"Претория", pop:"60 млн", flag:"🇿🇦", reg:"Africa"},
+        "Ethiopia": {name:"Эфиопия", cap:"Аддис-Абеба", pop:"120 млн", flag:"🇪🇹", reg:"Africa"},
+        "DR Congo": {name:"ДР Конго", cap:"Киншаса", pop:"95 млн", flag:"🇨🇩", reg:"Africa"},
+        "Tanzania": {name:"Танзания", cap:"Додома", pop:"63 млн", flag:"🇹🇿", reg:"Africa"},
+        "Kenya": {name:"Кения", cap:"Найроби", pop:"55 млн", flag:"🇰🇪", reg:"Africa"},
+        "Algeria": {name:"Алжир", cap:"Алжир", pop:"44 млн", flag:"🇩🇿", reg:"Africa"},
+        "Sudan": {name:"Судан", cap:"Хартум", pop:"45 млн",
