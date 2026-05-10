@@ -128,6 +128,13 @@
             font-weight: 600;
             margin-top: 20px;
             cursor: pointer;
+            display: none; /* Скрыта до загрузки карты */
+        }
+        
+        #loading-text {
+            margin-top: 20px;
+            font-size: 14px;
+            opacity: 0.7;
         }
 
         .leaflet-bar { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
@@ -140,7 +147,8 @@
 <div id="start-overlay">
     <h1 style="font-size: 24px; margin: 0; text-align: center;">Европа: Контурная карта</h1>
     <p style="opacity: 0.8; margin: 10px 0;">Угадайте все страны региона</p>
-    <button class="btn-main" onclick="startGame()">Начать квиз</button>
+    <div id="loading-text">Загрузка детальных границ стран...</div>
+    <button class="btn-main" id="start-btn" onclick="startGame()">Начать квиз</button>
 </div>
 
 <div class="app-layout">
@@ -209,7 +217,6 @@
         "Vatican": { name: "Ватикан", cap: "Ватикан", pop: "800 чел." }
     };
 
-    // Координаты карликовых государств, чтобы добавить их точками
     const microstates = {
         "Andorra": [42.5, 1.5],
         "Liechtenstein": [47.14, 9.52],
@@ -223,17 +230,21 @@
     let quizQueue = [];
     let currentTarget = null;
     let solvedCount = 0;
-    let isWaiting = false; // Блокировка кликов во время анимации
-    let layersMap = {}; // Сохраняем слои по именам для управления цветом
-    let solvedSet = new Set(); // Отслеживаем угаданные страны
+    let isWaiting = false;
+    let layersMap = {}; 
+    let solvedSet = new Set();
 
-    // Нормализация имен из разных баз карт
+    // Синхронизация названий для детализированной карты
     function getStandardName(name) {
+        if (!name) return "";
         if (name === "Russian Federation") return "Russia";
         if (name === "Czech Republic") return "Czechia";
         if (name === "Republic of Serbia") return "Serbia";
-        if (name === "Macedonia") return "North Macedonia";
-        if (name === "Bosnia and Herz.") return "Bosnia and Herzegovina";
+        if (name === "Macedonia" || name === "North Macedonia") return "North Macedonia";
+        if (name === "Bosnia and Herz." || name === "Bosnia and Herzegovina") return "Bosnia and Herzegovina";
+        if (name === "United Kingdom of Great Britain and Northern Ireland") return "United Kingdom";
+        if (name === "The Netherlands") return "Netherlands";
+        if (name === "Republic of Moldova") return "Moldova";
         return name;
     }
 
@@ -245,16 +256,17 @@
             attributionControl: false
         });
 
-        // Загружаем карту всего мира
-        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+        // Загружаем детализированную карту мира (high resolution)
+        fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
             .then(res => res.json())
             .then(data => {
                 L.geoJson(data, {
                     style: (feature) => {
-                        const stdName = getStandardName(feature.properties.name);
-                        const isEurope = ruData[stdName] && !microstates[stdName]; // Карлики нарисуем отдельно
+                        const rawName = feature.properties.ADMIN || feature.properties.name;
+                        const stdName = getStandardName(rawName);
+                        const isEurope = ruData[stdName] && !microstates[stdName]; 
                         return {
-                            fillColor: isEurope ? '#ffffff' : '#e2e8f0', // Европа белая, мир серый
+                            fillColor: isEurope ? '#ffffff' : '#e2e8f0', 
                             weight: 1,
                             opacity: 1,
                             color: '#94a3b8',
@@ -263,9 +275,9 @@
                         };
                     },
                     onEachFeature: (feature, layer) => {
-                        const stdName = getStandardName(feature.properties.name);
+                        const rawName = feature.properties.ADMIN || feature.properties.name;
+                        const stdName = getStandardName(rawName);
                         
-                        // Если это нужная нам страна (и не карлик, чтобы не было дублей)
                         if (ruData[stdName] && !microstates[stdName]) {
                             layersMap[stdName] = layer;
                             quizQueue.push(stdName);
@@ -274,10 +286,10 @@
                     }
                 }).addTo(map);
 
-                // Добавляем карликовые государства вручную кружочками
+                // Карликовые государства
                 for (let key in microstates) {
                     let circle = L.circleMarker(microstates[key], {
-                        radius: 7,
+                        radius: 8,
                         fillColor: '#ffffff',
                         color: '#475569',
                         weight: 2,
@@ -291,6 +303,10 @@
                 }
 
                 document.getElementById('total-count').innerText = quizQueue.length;
+                
+                // Убираем текст загрузки и показываем кнопку старта
+                document.getElementById('loading-text').style.display = 'none';
+                document.getElementById('start-btn').style.display = 'block';
             });
     }
 
@@ -298,7 +314,7 @@
         if (isWaiting || !currentTarget) return;
 
         if (clickedName === currentTarget) {
-            // ПРАВИЛЬНО
+            // ВЕРНО
             clickedLayer.setStyle({ fillColor: 'var(--correct)' });
             clickedLayer.off('click');
             solvedSet.add(clickedName);
@@ -308,40 +324,53 @@
             document.getElementById('current-score').innerText = solvedCount;
             
             isWaiting = true;
+            // Удерживаем результат 3 секунды
             setTimeout(() => {
                 isWaiting = false;
                 nextQuestion();
-            }, 1500);
+            }, 3000); 
 
         } else {
-            // НЕПРАВИЛЬНО
+            // ОШИБКА
             isWaiting = true;
             
-            // Красим кликнутую страну в розовый
+            // Кликнутая страна красится розовым
             clickedLayer.setStyle({ fillColor: 'var(--incorrect)' });
             
-            // Красим правильную страну (цель) в голубой для подсказки
+            // Правильная (целевая) страна красится голубым
             const targetLayer = layersMap[currentTarget];
             if (targetLayer) {
                 targetLayer.setStyle({ fillColor: 'var(--target-hint)' });
-                // Небольшой прыжок карты к целевой стране (опционально)
-                // map.panTo(targetLayer.getBounds().getCenter()); 
+                
+                // Плавное перемещение камеры в центр правильной страны
+                let center;
+                if (targetLayer.getBounds) {
+                    center = targetLayer.getBounds().getCenter(); // Для больших стран (полигоны)
+                } else if (targetLayer.getLatLng) {
+                    center = targetLayer.getLatLng(); // Для карликов (точки)
+                }
+
+                if (center) {
+                    map.flyTo(center, map.getZoom(), {
+                        animate: true,
+                        duration: 1.5 // Анимация полета занимает 1.5 секунды
+                    });
+                }
             }
 
+            // Удерживаем результат 3 секунды
             setTimeout(() => {
-                // Возвращаем белый цвет кликнутой стране (если она еще не была угадана ранее)
                 if (!solvedSet.has(clickedName)) {
                     clickedLayer.setStyle({ fillColor: '#ffffff' });
                 }
-                // Возвращаем белый цвет целевой стране
                 if (targetLayer && !solvedSet.has(currentTarget)) {
                     targetLayer.setStyle({ fillColor: '#ffffff' });
                 }
                 
-                quizQueue.push(currentTarget); // Возвращаем в конец очереди
+                quizQueue.push(currentTarget);
                 isWaiting = false;
                 nextQuestion();
-            }, 1500);
+            }, 3000); 
         }
     }
 
@@ -350,7 +379,8 @@
         const overlay = document.getElementById('info-overlay');
         overlay.innerHTML = `<strong>${info.name}</strong><br><small>Столица: ${info.cap} | Нас.: ${info.pop}</small>`;
         overlay.style.display = 'block';
-        setTimeout(() => { overlay.style.display = 'none'; }, 2000);
+        // Уведомление теперь тоже висит 3 секунды при правильном ответе
+        setTimeout(() => { overlay.style.display = 'none'; }, 3000);
     }
 
     function nextQuestion() {
