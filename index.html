@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Карта Мира | Географический Квиз</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Мировая Контурная Карта 2.0</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -17,7 +17,6 @@
             --incorrect: #fca5a5;
             --target-hint: #60a5fa;
             --text: #0f172a;
-            --btn-hover: #334155;
         }
 
         body, html {
@@ -28,36 +27,43 @@
         }
 
         .app-layout { display: flex; flex-direction: column; height: 100vh; }
+        
+        /* 9/10 экрана - Карта */
         #map { height: 90%; width: 100%; background: #cbd5e1; }
 
+        /* 1/10 экрана - Панель с учетом Safe Area iPhone */
         #bottom-panel {
             height: 10%; background: var(--panel-bg);
             border-top: 1px solid #e2e8f0;
             display: flex; align-items: center; justify-content: space-between;
-            padding: 0 15px; box-sizing: border-box; z-index: 1000;
+            padding: 0 15px env(safe-area-inset-bottom) 15px; /* Адаптация под полосу iOS */
+            box-sizing: border-box; z-index: 1000;
             box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
         }
 
         #question-box { display: flex; flex-direction: column; flex: 1; }
-        #task-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 2px; }
-        #target-name { font-size: 17px; font-weight: 600; color: var(--accent); line-height: 1.1; }
+        #task-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 2px; }
+        #target-name { font-size: 16px; font-weight: 700; color: var(--accent); line-height: 1.1; }
         
         .right-controls { display: flex; flex-direction: column; align-items: flex-end; }
-        #score-box { font-size: 13px; font-weight: 600; color: #475569; white-space: nowrap; margin-bottom: 4px; }
-        #current-score { color: var(--accent); }
+        #score-box { font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; }
         
         .btn-small {
             background: #e2e8f0; color: var(--accent); border: none;
-            padding: 4px 10px; border-radius: 6px; font-size: 11px;
+            padding: 5px 12px; border-radius: 6px; font-size: 11px;
             font-weight: 600; cursor: pointer; text-transform: uppercase;
         }
+
+        /* Визуальный фидбек на карте */
+        .clickable-country { cursor: pointer; outline: none; }
+        .clickable-country:hover { fill-opacity: 0.7 !important; transition: 0.2s; }
 
         #info-overlay {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
             padding: 12px 24px; border-radius: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             z-index: 2000; display: none; text-align: center; border: 1px solid #e2e8f0;
-            pointer-events: none; width: 80%; max-width: 300px;
+            pointer-events: none; width: 85%; max-width: 350px;
         }
 
         #start-overlay {
@@ -67,59 +73,68 @@
             z-index: 3000; transition: opacity 0.4s; overflow-y: auto; padding: 20px; box-sizing: border-box;
         }
 
-        .menu-title { font-size: 26px; margin: 0 0 5px 0; text-align: center; font-weight: 700; }
-        .menu-subtitle { opacity: 0.8; margin: 0 0 30px 0; text-align: center; font-size: 14px; }
+        .menu-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 20px; width: 100%; max-width: 400px; }
+        .section-title { font-size: 12px; text-transform: uppercase; opacity: 0.6; margin: 15px 0 10px 0; letter-spacing: 1px; }
         
-        .grid-menu {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 400px;
+        .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .btn-menu {
+            background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.1);
+            padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .btn-menu.active { background: white; color: var(--accent); }
+        
+        .btn-start {
+            width: 100%; padding: 18px; border-radius: 15px; border: none;
+            background: #60a5fa; color: white; font-size: 18px; font-weight: 700; cursor: pointer;
+            margin-top: 10px;
         }
 
-        .btn-menu {
-            background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);
-            padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 600;
-            cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; text-align: center;
-        }
-        .btn-menu:hover { background: rgba(255,255,255,0.2); }
-        .btn-world { grid-column: span 2; background: white; color: var(--accent); border: none; font-size: 16px; padding: 18px; }
-        .btn-world:hover { background: #f1f5f9; }
+        #resume-btn { background: #34d399; margin-bottom: 10px; }
 
         #loading-text { font-size: 14px; opacity: 0.7; margin-top: 20px; }
         .hidden { display: none !important; }
-
-        .leaflet-bar { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
-        .leaflet-bar a { background: white !important; color: var(--accent) !important; }
-        .clickable-country { cursor: pointer; transition: fill 0.2s; }
     </style>
 </head>
 <body>
 
 <div id="start-overlay">
-    <h1 class="menu-title">Контурная карта</h1>
-    <p class="menu-subtitle">Выберите регион для изучения</p>
-    
-    <div id="loading-text">Загрузка детальных границ...</div>
-    
-    <div class="grid-menu hidden" id="menu-buttons">
-        <button class="btn-menu" onclick="startGame('Europe')">Европа</button>
-        <button class="btn-menu" onclick="startGame('Asia')">Азия</button>
-        <button class="btn-menu" onclick="startGame('Africa')">Африка</button>
-        <button class="btn-menu" onclick="startGame('Oceania')">Океания</button>
-        <button class="btn-menu" onclick="startGame('North America')">Сев. Америка</button>
-        <button class="btn-menu" onclick="startGame('South America')">Юж. Америка</button>
-        <button class="btn-menu btn-world" onclick="startGame('World')">Все страны мира 🌍</button>
+    <div class="menu-card">
+        <h1 style="margin: 0 0 10px 0; font-size: 28px;">Карта Мира</h1>
+        
+        <div id="loading-text">Загрузка данных...</div>
+
+        <div id="ui-content" class="hidden">
+            <button id="resume-btn" class="btn-start hidden" onclick="resumeGame()">Продолжить игру</button>
+
+            <div class="section-title">1. Выберите режим</div>
+            <div class="grid-menu" id="mode-selector">
+                <button class="btn-menu active" onclick="setMode('name', this)">Названия</button>
+                <button class="btn-menu" onclick="setMode('cap', this)">Столицы</button>
+                <button class="btn-menu" onclick="setMode('flag', this)">Флаги</button>
+            </div>
+
+            <div class="section-title">2. Регион</div>
+            <div class="grid-menu" id="region-selector">
+                <button class="btn-menu active" onclick="setReg('Europe', this)">Европа</button>
+                <button class="btn-menu" onclick="setReg('Asia', this)">Азия</button>
+                <button class="btn-menu" onclick="setReg('Africa', this)">Африка</button>
+                <button class="btn-menu" onclick="setReg('Americas', this)">Америка</button>
+            </div>
+            <button class="btn-start" onclick="initNewGame()">Начать заново</button>
+        </div>
     </div>
 </div>
 
 <div class="app-layout">
     <div id="map"></div>
-    <div id="bottom-panel">
+    <div id="bottom-panel" onclick="skipDelay()">
         <div id="question-box">
             <span id="task-label">Найдите на карте:</span>
-            <span id="target-name">...</span>
+            <span id="target-name">Загрузка...</span>
         </div>
         <div class="right-controls">
-            <div id="score-box">Угадано: <span id="current-score">0</span> / <span id="total-count">0</span></div>
-            <button class="btn-small" onclick="showMenu()">Меню</button>
+            <div id="score-box"><span id="current-score">0</span> / <span id="total-count">0</span></div>
+            <button class="btn-small" onclick="location.reload()">Меню</button>
         </div>
     </div>
 </div>
@@ -129,131 +144,200 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // Глобальная база данных стран
+    // База данных стран (с флагами и столицами)
     const ruData = {
-        // ЕВРОПА
-        "Albania": { name: "Албания", cap: "Тирана", pop: "2.8 млн", reg: "Europe" },
-        "Andorra": { name: "Андорра", cap: "Андорра-ла-Велья", pop: "77 тыс.", reg: "Europe" },
-        "Austria": { name: "Австрия", cap: "Вена", pop: "8.9 млн", reg: "Europe" },
-        "Belarus": { name: "Беларусь", cap: "Минск", pop: "9.3 млн", reg: "Europe" },
-        "Belgium": { name: "Бельгия", cap: "Брюссель", pop: "11.5 млн", reg: "Europe" },
-        "Bosnia and Herzegovina": { name: "Босния и Герцеговина", cap: "Сараево", pop: "3.2 млн", reg: "Europe" },
-        "Bulgaria": { name: "Болгария", cap: "София", pop: "6.9 млн", reg: "Europe" },
-        "Croatia": { name: "Хорватия", cap: "Загреб", pop: "4.0 млн", reg: "Europe" },
-        "Cyprus": { name: "Кипр", cap: "Никосия", pop: "1.2 млн", reg: "Europe" },
-        "Czechia": { name: "Чехия", cap: "Прага", pop: "10.7 млн", reg: "Europe" },
-        "Denmark": { name: "Дания", cap: "Копенгаген", pop: "5.8 млн", reg: "Europe" },
-        "Estonia": { name: "Эстония", cap: "Таллин", pop: "1.3 млн", reg: "Europe" },
-        "Finland": { name: "Финляндия", cap: "Хельсинки", pop: "5.5 млн", reg: "Europe" },
-        "France": { name: "Франция", cap: "Париж", pop: "67.8 млн", reg: "Europe" },
-        "Germany": { name: "Германия", cap: "Берлин", pop: "83.2 млн", reg: "Europe" },
-        "Greece": { name: "Греция", cap: "Афины", pop: "10.7 млн", reg: "Europe" },
-        "Hungary": { name: "Венгрия", cap: "Будапешт", pop: "9.7 млн", reg: "Europe" },
-        "Iceland": { name: "Исландия", cap: "Рейкьявик", pop: "366 тыс.", reg: "Europe" },
-        "Ireland": { name: "Ирландия", cap: "Дублин", pop: "4.9 млн", reg: "Europe" },
-        "Italy": { name: "Италия", cap: "Рим", pop: "59.1 млн", reg: "Europe" },
-        "Latvia": { name: "Латвия", cap: "Рига", pop: "1.9 млн", reg: "Europe" },
-        "Liechtenstein": { name: "Лихтенштейн", cap: "Вадуц", pop: "38 тыс.", reg: "Europe" },
-        "Lithuania": { name: "Литва", cap: "Вильнюс", pop: "2.8 млн", reg: "Europe" },
-        "Luxembourg": { name: "Люксембург", cap: "Люксембург", pop: "632 тыс.", reg: "Europe" },
-        "Malta": { name: "Мальта", cap: "Валлетта", pop: "514 тыс.", reg: "Europe" },
-        "Moldova": { name: "Молдова", cap: "Кишинев", pop: "2.6 млн", reg: "Europe" },
-        "Monaco": { name: "Монако", cap: "Монако", pop: "38 тыс.", reg: "Europe" },
-        "Montenegro": { name: "Черногория", cap: "Подгорица", pop: "622 тыс.", reg: "Europe" },
-        "Netherlands": { name: "Нидерланды", cap: "Амстердам", pop: "17.4 млн", reg: "Europe" },
-        "North Macedonia": { name: "Северная Македония", cap: "Скопье", pop: "2.0 млн", reg: "Europe" },
-        "Norway": { name: "Норвегия", cap: "Осло", pop: "5.3 млн", reg: "Europe" },
-        "Poland": { name: "Польша", cap: "Варшава", pop: "37.9 млн", reg: "Europe" },
-        "Portugal": { name: "Португалия", cap: "Лиссабон", pop: "10.3 млн", reg: "Europe" },
-        "Romania": { name: "Румыния", cap: "Бухарест", pop: "19.2 млн", reg: "Europe" },
-        "Russia": { name: "Россия", cap: "Москва", pop: "146 млн", reg: "Europe" }, // Можно отнести к Евразии, но оставим в Европе для квиза
-        "San Marino": { name: "Сан-Марино", cap: "Сан-Марино", pop: "34 тыс.", reg: "Europe" },
-        "Serbia": { name: "Сербия", cap: "Белград", pop: "6.9 млн", reg: "Europe" },
-        "Slovakia": { name: "Словакия", cap: "Братислава", pop: "5.4 млн", reg: "Europe" },
-        "Slovenia": { name: "Словения", cap: "Любляна", pop: "2.1 млн", reg: "Europe" },
-        "Spain": { name: "Испания", cap: "Мадрид", pop: "47.3 млн", reg: "Europe" },
-        "Sweden": { name: "Швеция", cap: "Стокгольм", pop: "10.3 млн", reg: "Europe" },
-        "Switzerland": { name: "Швейцария", cap: "Берн", pop: "8.6 млн", reg: "Europe" },
-        "Ukraine": { name: "Украина", cap: "Киев", pop: "41 млн", reg: "Europe" },
-        "United Kingdom": { name: "Великобритания", cap: "Лондон", pop: "67.1 млн", reg: "Europe" },
-        "Vatican": { name: "Ватикан", cap: "Ватикан", pop: "800 чел.", reg: "Europe" },
+        "Russia": { name: "Россия", cap: "Москва", flag: "🇷🇺", reg: "Europe" },
+        "Ukraine": { name: "Украина", cap: "Киев", flag: "🇺🇦", reg: "Europe" },
+        "France": { name: "Франция", cap: "Париж", flag: "🇫🇷", reg: "Europe" },
+        "Germany": { name: "Германия", cap: "Берлин", flag: "🇩🇪", reg: "Europe" },
+        "Italy": { name: "Италия", cap: "Рим", flag: "🇮🇹", reg: "Europe" },
+        "Spain": { name: "Испания", cap: "Мадрид", flag: "🇪🇸", reg: "Europe" },
+        "United Kingdom": { name: "Великобритания", cap: "Лондон", flag: "🇬🇧", reg: "Europe" },
+        "Poland": { name: "Польша", cap: "Варшава", flag: "🇵🇱", reg: "Europe" },
+        "Kazakhstan": { name: "Казахстан", cap: "Астана", flag: "🇰🇿", reg: "Asia" },
+        "China": { name: "Китай", cap: "Пекин", flag: "🇨🇳", reg: "Asia" },
+        "Japan": { name: "Япония", cap: "Токио", flag: "🇯🇵", reg: "Asia" },
+        "India": { name: "Индия", cap: "Нью-Дели", flag: "🇮🇳", reg: "Asia" },
+        "Turkey": { name: "Турция", cap: "Анкара", flag: "🇹🇷", reg: "Asia" },
+        "USA": { name: "США", cap: "Вашингтон", flag: "🇺🇸", reg: "Americas" },
+        "Canada": { name: "Канада", cap: "Оттава", flag: "🇨🇦", reg: "Americas" },
+        "Brazil": { name: "Бразилия", cap: "Бразилиа", flag: "🇧🇷", reg: "Americas" },
+        "Egypt": { name: "Египет", cap: "Каир", flag: "🇪🇬", reg: "Africa" },
+        "South Africa": { name: "ЮАР", cap: "Претория", flag: "🇿🇦", reg: "Africa" },
+        "Nigeria": { name: "Нигерия", cap: "Абуджа", flag: "🇳🇬", reg: "Africa" },
+        // ... (другие страны добавляются автоматически из GeoJSON, если их нет здесь - будет только имя)
+    };
 
-        // АЗИЯ
-        "Afghanistan": { name: "Афганистан", cap: "Кабул", pop: "40 млн", reg: "Asia" },
-        "Armenia": { name: "Армения", cap: "Ереван", pop: "2.9 млн", reg: "Asia" },
-        "Azerbaijan": { name: "Азербайджан", cap: "Баку", pop: "10 млн", reg: "Asia" },
-        "Bahrain": { name: "Бахрейн", cap: "Манама", pop: "1.7 млн", reg: "Asia" },
-        "Bangladesh": { name: "Бангладеш", cap: "Дакка", pop: "169 млн", reg: "Asia" },
-        "Bhutan": { name: "Бутан", cap: "Тхимпху", pop: "777 тыс.", reg: "Asia" },
-        "Brunei": { name: "Бруней", cap: "Бандар-Сери-Бегаван", pop: "441 тыс.", reg: "Asia" },
-        "Cambodia": { name: "Камбоджа", cap: "Пномпень", pop: "16.7 млн", reg: "Asia" },
-        "China": { name: "Китай", cap: "Пекин", pop: "1.4 млрд", reg: "Asia" },
-        "Georgia": { name: "Грузия", cap: "Тбилиси", pop: "3.7 млн", reg: "Asia" },
-        "India": { name: "Индия", cap: "Нью-Дели", pop: "1.4 млрд", reg: "Asia" },
-        "Indonesia": { name: "Индонезия", cap: "Джакарта", pop: "273 млн", reg: "Asia" },
-        "Iran": { name: "Иран", cap: "Тегеран", pop: "87 млн", reg: "Asia" },
-        "Iraq": { name: "Ирак", cap: "Багдад", pop: "43 млн", reg: "Asia" },
-        "Israel": { name: "Израиль", cap: "Иерусалим", pop: "9.3 млн", reg: "Asia" },
-        "Japan": { name: "Япония", cap: "Токио", pop: "125 млн", reg: "Asia" },
-        "Jordan": { name: "Иордания", cap: "Амман", pop: "11.1 млн", reg: "Asia" },
-        "Kazakhstan": { name: "Казахстан", cap: "Астана", pop: "19 млн", reg: "Asia" },
-        "Kuwait": { name: "Кувейт", cap: "Эль-Кувейт", pop: "4.2 млн", reg: "Asia" },
-        "Kyrgyzstan": { name: "Кыргызстан", cap: "Бишкек", pop: "6.6 млн", reg: "Asia" },
-        "Laos": { name: "Лаос", cap: "Вьентьян", pop: "7.3 млн", reg: "Asia" },
-        "Lebanon": { name: "Ливан", cap: "Бейрут", pop: "6.7 млн", reg: "Asia" },
-        "Malaysia": { name: "Малайзия", cap: "Куала-Лумпур", pop: "32.7 млн", reg: "Asia" },
-        "Maldives": { name: "Мальдивы", cap: "Мале", pop: "540 тыс.", reg: "Asia" },
-        "Mongolia": { name: "Монголия", cap: "Улан-Батор", pop: "3.3 млн", reg: "Asia" },
-        "Myanmar": { name: "Мьянма", cap: "Нейпьидо", pop: "54.8 млн", reg: "Asia" },
-        "Nepal": { name: "Непал", cap: "Катманду", pop: "30 млн", reg: "Asia" },
-        "North Korea": { name: "КНДР", cap: "Пхеньян", pop: "25.9 млн", reg: "Asia" },
-        "Oman": { name: "Оман", cap: "Маскат", pop: "5.2 млн", reg: "Asia" },
-        "Pakistan": { name: "Пакистан", cap: "Исламабад", pop: "231 млн", reg: "Asia" },
-        "Philippines": { name: "Филиппины", cap: "Манила", pop: "113 млн", reg: "Asia" },
-        "Qatar": { name: "Катар", cap: "Доха", pop: "2.9 млн", reg: "Asia" },
-        "Saudi Arabia": { name: "Саудовская Аравия", cap: "Эр-Рияд", pop: "35.9 млн", reg: "Asia" },
-        "Singapore": { name: "Сингапур", cap: "Сингапур", pop: "5.4 млн", reg: "Asia" },
-        "South Korea": { name: "Южная Корея", cap: "Сеул", pop: "51.7 млн", reg: "Asia" },
-        "Sri Lanka": { name: "Шри-Ланка", cap: "Коломбо", pop: "22.1 млн", reg: "Asia" },
-        "Syria": { name: "Сирия", cap: "Дамаск", pop: "21.3 млн", reg: "Asia" },
-        "Taiwan": { name: "Тайвань", cap: "Тайбэй", pop: "23.5 млн", reg: "Asia" },
-        "Tajikistan": { name: "Таджикистан", cap: "Душанбе", pop: "9.7 млн", reg: "Asia" },
-        "Thailand": { name: "Таиланд", cap: "Бангкок", pop: "71.6 млн", reg: "Asia" },
-        "Turkey": { name: "Турция", cap: "Анкара", pop: "85.2 млн", reg: "Asia" },
-        "Turkmenistan": { name: "Туркменистан", cap: "Ашхабад", pop: "6.1 млн", reg: "Asia" },
-        "United Arab Emirates": { name: "ОАЭ", cap: "Абу-Даби", pop: "9.8 млн", reg: "Asia" },
-        "Uzbekistan": { name: "Узбекистан", cap: "Ташкент", pop: "34.9 млн", reg: "Asia" },
-        "Vietnam": { name: "Вьетнам", cap: "Ханой", pop: "98.1 млн", reg: "Asia" },
-        "Yemen": { name: "Йемен", cap: "Сана", pop: "30.4 млн", reg: "Asia" },
+    const microstates = {
+        "Vatican": [41.9, 12.45], "San Marino": [43.9, 12.4], "Monaco": [43.7, 7.4], "Andorra": [42.5, 1.5]
+    };
 
-        // СЕВЕРНАЯ АМЕРИКА
-        "Antigua and Barbuda": { name: "Антигуа и Барбуда", cap: "Сент-Джонс", pop: "98 тыс.", reg: "North America" },
-        "Bahamas": { name: "Багамские Острова", cap: "Нассау", pop: "393 тыс.", reg: "North America" },
-        "Barbados": { name: "Барбадос", cap: "Бриджтаун", pop: "287 тыс.", reg: "North America" },
-        "Belize": { name: "Белиз", cap: "Бельмопан", pop: "404 тыс.", reg: "North America" },
-        "Canada": { name: "Канада", cap: "Оттава", pop: "38 млн", reg: "North America" },
-        "Costa Rica": { name: "Коста-Рика", cap: "Сан-Хосе", pop: "5.1 млн", reg: "North America" },
-        "Cuba": { name: "Куба", cap: "Гавана", pop: "11.3 млн", reg: "North America" },
-        "Dominica": { name: "Доминика", cap: "Розо", pop: "72 тыс.", reg: "North America" },
-        "Dominican Republic": { name: "Доминиканская Республика", cap: "Санто-Доминго", pop: "10.8 млн", reg: "North America" },
-        "El Salvador": { name: "Сальвадор", cap: "Сан-Сальвадор", pop: "6.4 млн", reg: "North America" },
-        "Grenada": { name: "Гренада", cap: "Сент-Джорджес", pop: "112 тыс.", reg: "North America" },
-        "Guatemala": { name: "Гватемала", cap: "Гватемала", pop: "17.1 млн", reg: "North America" },
-        "Haiti": { name: "Гаити", cap: "Порт-о-Пренс", pop: "11.4 млн", reg: "North America" },
-        "Honduras": { name: "Гондурас", cap: "Тегусигальпа", pop: "10.0 млн", reg: "North America" },
-        "Jamaica": { name: "Ямайка", cap: "Кингстон", pop: "2.9 млн", reg: "North America" },
-        "Mexico": { name: "Мексика", cap: "Мехико", pop: "128.9 млн", reg: "North America" },
-        "Nicaragua": { name: "Никарагуа", cap: "Манагуа", pop: "6.6 млн", reg: "North America" },
-        "Panama": { name: "Панама", cap: "Панама", pop: "4.3 млн", reg: "North America" },
-        "Saint Kitts and Nevis": { name: "Сент-Китс и Невис", cap: "Бастер", pop: "53 тыс.", reg: "North America" },
-        "Saint Lucia": { name: "Сент-Люсия", cap: "Кастри", pop: "183 тыс.", reg: "North America" },
-        "Saint Vincent and the Grenadines": { name: "Сент-Винсент", cap: "Кингстаун", pop: "110 тыс.", reg: "North America" },
-        "United States": { name: "США", cap: "Вашингтон", pop: "331.8 млн", reg: "North America" },
+    let map, geoData, currentMode = 'name', currentReg = 'Europe';
+    let quizQueue = [], solvedCount = 0, currentTarget = null;
+    let isWaiting = false, layersMap = {}, timerId = null;
 
-        // ЮЖНАЯ АМЕРИКА
-        "Argentina": { name: "Аргентина", cap: "Буэнос-Айрес", pop: "45.3 млн", reg: "South America" },
-        "Bolivia": { name: "Боливия", cap: "Сукре", pop: "11.6 млн", reg: "South America" },
-        "Brazil": { name: "Бразилия", cap: "Бразилиа", pop: "212.5 млн", reg: "South America" },
-        "Chile": { name: "Чили", cap: "Сантьяго", pop: "19.1 млн", reg: "South America" },
-        "Colombia": { name: "Колумбия", cap: "Богота", pop: "50.8 млн", reg: "South America" },
-        "Ecuador
+    function getStandardName(n) {
+        if (!n) return "";
+        // Политическая правка: Крым -> Россия
+        if (n.includes("Crimea") || n === "Autonomous Republic of Crimea") return "Russia";
+        if (n === "Russian Federation") return "Russia";
+        if (n === "United States of America") return "USA";
+        return n;
+    }
+
+    function initMap() {
+        map = L.map('map', { center: [50, 20], zoom: 3, zoomControl: false, attributionControl: false });
+
+        fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
+            .then(res => res.json())
+            .then(data => {
+                geoData = data;
+                document.getElementById('loading-text').classList.add('hidden');
+                document.getElementById('ui-content').classList.remove('hidden');
+                if(localStorage.getItem('geoQuizSave')) document.getElementById('resume-btn').classList.remove('hidden');
+            });
+    }
+
+    function setMode(m, btn) {
+        currentMode = m;
+        document.querySelectorAll('#mode-selector .btn-menu').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function setReg(r, btn) {
+        currentReg = r;
+        document.querySelectorAll('#region-selector .btn-menu').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function initNewGame() {
+        solvedCount = 0;
+        quizQueue = [];
+        solvedSet = new Set();
+        startActualGame();
+    }
+
+    function resumeGame() {
+        const save = JSON.parse(localStorage.getItem('geoQuizSave'));
+        solvedCount = save.solvedCount;
+        quizQueue = save.quizQueue;
+        currentMode = save.mode;
+        currentReg = save.reg;
+        startActualGame(true);
+    }
+
+    function startActualGame(isResumed = false) {
+        document.getElementById('start-overlay').style.opacity = '0';
+        setTimeout(() => document.getElementById('start-overlay').style.display = 'none', 400);
+
+        // Отрисовка карты
+        if(map.geoLayer) map.removeLayer(map.geoLayer);
+        layersMap = {};
+
+        map.geoLayer = L.geoJson(geoData, {
+            style: (f) => {
+                return { fillColor: '#ffffff', weight: 1, color: '#94a3b8', fillOpacity: 1, className: 'clickable-country' };
+            },
+            onEachFeature: (f, l) => {
+                const name = getStandardName(f.properties.name);
+                layersMap[name] = l;
+                if(!isResumed && (currentReg === 'World' || (ruData[name] && ruData[name].reg === currentReg))) {
+                    quizQueue.push(name);
+                }
+                l.on('click', () => handleSelect(name, l));
+            }
+        }).addTo(map);
+
+        if(!isResumed) quizQueue.sort(() => Math.random() - 0.5);
+        
+        document.getElementById('total-count').innerText = quizQueue.length + solvedCount;
+        updateUI();
+        nextQuestion();
+    }
+
+    function handleSelect(name, layer) {
+        if (isWaiting || !currentTarget) return;
+
+        if (name === currentTarget) {
+            // ВЕРНО
+            layer.setStyle({ fillColor: 'var(--correct)' });
+            showInfo(name);
+            solvedCount++;
+            isWaiting = true;
+            saveProgress();
+            timerId = setTimeout(nextQuestion, 3000);
+        } else {
+            // ОШИБКА
+            isWaiting = true;
+            layer.setStyle({ fillColor: 'var(--incorrect)' });
+            const targetLayer = layersMap[currentTarget];
+            if (targetLayer) {
+                targetLayer.setStyle({ fillColor: 'var(--target-hint)' });
+                // Динамический зум flyToBounds
+                if(targetLayer.getBounds) map.flyToBounds(targetLayer.getBounds(), { padding: [50, 50], duration: 1 });
+            }
+            quizQueue.push(currentTarget);
+            timerId = setTimeout(() => {
+                layer.setStyle({ fillColor: '#ffffff' });
+                if(targetLayer) targetLayer.setStyle({ fillColor: '#ffffff' });
+                nextQuestion();
+            }, 3000);
+        }
+    }
+
+    function nextQuestion() {
+        isWaiting = false;
+        if (quizQueue.length === 0) {
+            document.getElementById('target-name').innerText = "Победа! Ты молодец!";
+            localStorage.removeItem('geoQuizSave');
+            return;
+        }
+        currentTarget = quizQueue.shift();
+        updateUI();
+    }
+
+    function skipDelay() {
+        if (isWaiting) {
+            clearTimeout(timerId);
+            const targetLayer = layersMap[currentTarget];
+            // Сброс цветов перед переходом
+            Object.values(layersMap).forEach(l => {
+                if (l.options.fillColor === 'var(--incorrect)' || l.options.fillColor === 'var(--target-hint)') {
+                    l.setStyle({ fillColor: '#ffffff' });
+                }
+            });
+            nextQuestion();
+        }
+    }
+
+    function updateUI() {
+        document.getElementById('current-score').innerText = solvedCount;
+        if (!currentTarget) return;
+        
+        const data = ruData[currentTarget] || { name: currentTarget, cap: "?", flag: "🏳️" };
+        let qText = "";
+        if (currentMode === 'name') qText = data.name;
+        else if (currentMode === 'cap') qText = "Столица: " + data.cap;
+        else qText = "Чей флаг? " + data.flag;
+        
+        document.getElementById('target-name').innerText = qText;
+    }
+
+    function showInfo(name) {
+        const d = ruData[name] || { name: name, cap: "н/д", flag: "" };
+        const ov = document.getElementById('info-overlay');
+        ov.innerHTML = `<strong>${d.flag} ${d.name}</strong><br><small>Столица: ${d.cap}</small>`;
+        ov.style.display = 'block';
+        setTimeout(() => ov.style.display = 'none', 2500);
+    }
+
+    function saveProgress() {
+        const data = { quizQueue, solvedCount, mode: currentMode, reg: currentReg };
+        localStorage.setItem('geoQuizSave', JSON.stringify(data));
+    }
+
+    initMap();
+</script>
+
+</body>
+</html>
