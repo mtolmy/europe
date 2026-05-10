@@ -15,7 +15,7 @@
             --text: #1e293b; --muted: #64748b;
         }
         
-        * { box-sizing: border-box; touch-action: manipulation; /* Убирает задержку 300ms на мобильных */ }
+        * { box-sizing: border-box; touch-action: manipulation; }
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text); overflow: hidden; }
         
         .app-layout { display: flex; flex-direction: column; height: 100vh; }
@@ -359,7 +359,6 @@ const app = {
     queue: [], solved: 0, target: null,
     isLocked: false, timer: null, layers: {},
 
-    // Нормализация нестандартных имен из D3 GeoJSON под нашу базу
     getStandardName: (n) => {
         if (!n) return "";
         if (n.includes("Crimea") || n === "Russian Federation") return "Russia";
@@ -391,7 +390,6 @@ const app = {
                 document.getElementById('loading-text').classList.add('hidden');
                 document.getElementById('ui-content').classList.remove('hidden');
                 
-                // Безопасная проверка сохранений
                 try { if(localStorage.getItem('geoSavePro')) document.getElementById('resume-btn').classList.remove('hidden'); } catch(e){}
             })
             .catch(err => {
@@ -453,7 +451,7 @@ const app = {
 
     handleSelect: (name, layer) => {
         if (app.isLocked || !app.target) return;
-        app.isLocked = true; // Блокировка от двойного клика
+        app.isLocked = true; 
 
         if (name === app.target) {
             // ВЕРНО
@@ -468,7 +466,10 @@ const app = {
             const targetLayer = app.layers[app.target];
             if (targetLayer) {
                 targetLayer.setStyle({ fillColor: CONFIG.colors.hint });
-                app.map.flyToBounds(targetLayer.getBounds(), { padding: [30, 30], duration: 1.2 });
+                
+                // Перелёт к верной стране без зума
+                const center = targetLayer.getBounds ? targetLayer.getBounds().getCenter() : targetLayer.getLatLng();
+                app.map.flyTo(center, app.map.getZoom(), { duration: 1.2 });
             }
             app.queue.push(app.target);
             app.timer = setTimeout(() => {
