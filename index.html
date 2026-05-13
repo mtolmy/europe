@@ -23,6 +23,8 @@
             margin: 0; padding: 0; width: 100%; 
             height: 100%; height: -webkit-fill-available;
             font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text); overflow: hidden; 
+            /* Предотвращаем выделение текста и вызов меню при долгом нажатии */
+            -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
         }
         
         .app-layout { 
@@ -37,6 +39,7 @@
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 15px calc(env(safe-area-inset-bottom) + 5px) 15px; z-index: 1000;
             box-shadow: 0 -4px 15px rgba(0,0,0,0.03);
+            cursor: pointer;
         }
         
         #question-box { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
@@ -118,14 +121,14 @@
 
 <div class="app-layout">
     <div id="map"></div>
-    <div id="bottom-panel" onclick="app.skipDelay()">
+    <div id="bottom-panel">
         <div id="question-box">
             <span id="task-label">Найдите на карте:</span>
             <span id="target-name">Подготовка...</span>
         </div>
         <div class="right-controls">
             <div id="score-box"><span id="current-score">0</span> / <span id="total-count">0</span></div>
-            <button class="btn-small" onclick="location.reload()">Меню</button>
+            <button class="btn-small" onclick="location.reload(true)">Меню</button>
         </div>
     </div>
 </div>
@@ -385,11 +388,13 @@ const app = {
     map: null, geoLayer: null, geoData: null,
     mode: 'name', reg: 'Europe',
     queue: [], solved: 0, target: null,
-    isLocked: false, timer: null, layers: {}, // layers теперь объект массивов слоев
+    isLocked: false, isHolding: false, timer: null, layers: {},
 
     getStandardName: (n) => {
         if (!n) return "";
-        if (n.includes("Crimea") || n === "Russian Federation") return "Russia";
+        // Крым жестко закреплен за Россией (1 задача)
+        if (n === "Russian Federation" || n.includes("Crimea")) return "Russia"; 
+        
         if (n === "United States of America") return "USA";
         if (n === "Republic of Korea") return "South Korea";
         if (n === "Democratic People's Republic of Korea") return "North Korea";
@@ -411,6 +416,27 @@ const app = {
     init: () => {
         app.map = L.map('map', { center: [20, 0], zoom: 2, zoomControl: false, attributionControl: false, tap: false });
         
+        // Логика Touch & Hold (3 задача)
+        const handleDown = (e) => {
+            if (app.isLocked) {
+                app.isHolding = true;
+                clearTimeout(app.timer);
+            }
+        };
+
+        const handleUp = (e) => {
+            if (app.isLocked && app.isHolding) {
+                app.isHolding = false;
+                app.skipDelay();
+            }
+        };
+
+        document.addEventListener('mousedown', handleDown, {capture: true, passive: true});
+        document.addEventListener('touchstart', handleDown, {capture: true, passive: true});
+        document.addEventListener('mouseup', handleUp, {capture: true, passive: true});
+        document.addEventListener('touchend', handleUp, {capture: true, passive: true});
+        document.addEventListener('touchcancel', handleUp, {capture: true, passive: true});
+
         fetch('https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/DATA/world.geojson')
             .then(r => { if (!r.ok) throw new Error(); return r.json(); })
             .then(data => {
@@ -461,7 +487,6 @@ const app = {
 
         if(app.geoLayer) app.map.removeLayer(app.geoLayer);
         
-        // Очищаем слои
         for (let key in app.layers) {
             app.layers[key].forEach(l => app.map.removeLayer(l));
         }
@@ -472,7 +497,7 @@ const app = {
             onEachFeature: (f, l) => {
                 const name = app.getStandardName(f.properties.name);
                 if (!app.layers[name]) app.layers[name] = [];
-                app.layers[name].push(l); // Собираем все полигоны страны (вкл. Крым для России)
+                app.layers[name].push(l); 
                 
                 const dbData = DB[name];
                 if (app.reg === 'World' || (dbData && dbData.reg === app.reg)) {
@@ -482,7 +507,6 @@ const app = {
             }
         }).addTo(app.map);
 
-        // Добавляем карликовые государства
         for (let name in DWARFS) {
             const dbData = DB[name];
             if (app.reg === 'World' || (dbData && dbData.reg === app.reg)) {
@@ -511,28 +535,28 @@ const app = {
     handleSelect: (name, clickedLayer) => {
         if (app.isLocked || !app.target) return;
         app.isLocked = true; 
+        app.isHolding = false;
 
         if (name === app.target) {
             // ВЕРНО
             app.setCountryStyle(name, { fillColor: CONFIG.colors.correct });
             app.showInfo(name);
             app.solved++;
-            document.getElementById('current-score').innerText = app.solved; // Обновляем счетчик сразу!
+            document.getElementById('current-score').innerText = app.solved; 
             app.saveProgress();
-            app.timer = setTimeout(app.nextQuestion, 2500);
+            app.timer = setTimeout(() => app.skipDelay(), 3000); // Унифицированная 3-х секундная задержка
         } else {
             // ОШИБКА
             app.setCountryStyle(name, { fillColor: CONFIG.colors.incorrect });
-            app.setCountryStyle(app.target, { fillColor: CONFIG.colors.hint });
+            app.setCountryStyle(app.target, { fillColor: CONFIG.colors.hint }); // Голубой цвет правильной страны (2 задача)
             
-            // Если режим не Названия - подсказываем словами
+            // Если режим не Названия - подсказываем правильную страну синим цветом (2 задача)
             if (app.mode !== 'name') {
                 const targetEl = document.getElementById('target-name');
-                targetEl.innerHTML = `<span style="color:var(--incorrect)">Ошибка:</span> Это ${DB[app.target].name}`;
+                targetEl.innerHTML = `<span style="color:var(--incorrect)">Ошибка:</span> <span style="color:var(--target-hint)">${DB[app.target].name}</span>`;
             }
 
             let center;
-            // Фикс для Фиджи, чтобы не мотало через весь глобус
             if (app.target === "Fiji") {
                 center = [-17.7134, 178.0650]; 
             } else if (app.layers[app.target] && app.layers[app.target].length > 0) {
@@ -543,18 +567,13 @@ const app = {
             if (center) app.map.flyTo(center, app.map.getZoom(), { duration: 1.2 });
             
             app.queue.push(app.target);
-            app.timer = setTimeout(() => {
-                app.setCountryStyle(name, { fillColor: CONFIG.colors.default });
-                app.setCountryStyle(app.target, { fillColor: CONFIG.colors.default });
-                app.nextQuestion();
-            }, 3000);
+            app.timer = setTimeout(() => app.skipDelay(), 3000); // Унифицированная 3-х секундная задержка
         }
     },
 
     nextQuestion: () => {
         app.isLocked = false;
         
-        // Фикс финального счетчика
         document.getElementById('current-score').innerText = app.solved;
         
         if (app.queue.length === 0) {
@@ -574,6 +593,8 @@ const app = {
     skipDelay: () => {
         if (app.isLocked) {
             clearTimeout(app.timer);
+            app.isHolding = false;
+            
             Object.values(app.layers).forEach(layerArray => {
                 layerArray.forEach(l => {
                     const c = l.options.fillColor;
@@ -583,7 +604,11 @@ const app = {
                 });
             });
             document.getElementById('info-overlay').style.display = 'none';
-            app.nextQuestion();
+            
+            // Легкая задержка перед следующим вопросом (устраняет ложные срабатывания кликов)
+            setTimeout(() => {
+                app.nextQuestion();
+            }, 50);
         }
     },
 
@@ -599,7 +624,7 @@ const app = {
         else txt = "Чей флаг? " + d.flag;
         
         const targetEl = document.getElementById('target-name');
-        targetEl.style.color = "var(--accent)"; // Сбрасываем цвет после ошибки
+        targetEl.style.color = "var(--accent)";
         targetEl.innerText = txt;
     },
 
