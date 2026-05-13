@@ -390,9 +390,7 @@ const app = {
 
     getStandardName: (n) => {
         if (!n) return "";
-        // Крым жестко закреплен за Россией
-        if (n === "Russian Federation" || n.includes("Crimea")) return "Russia"; 
-        
+        if (n.includes("Crimea") || n === "Russian Federation") return "Russia";
         if (n === "United States of America") return "USA";
         if (n === "Republic of Korea") return "South Korea";
         if (n === "Democratic People's Republic of Korea") return "North Korea";
