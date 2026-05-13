@@ -23,7 +23,6 @@
             margin: 0; padding: 0; width: 100%; 
             height: 100%; height: -webkit-fill-available;
             font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text); overflow: hidden; 
-            /* Предотвращаем выделение текста и вызов меню при долгом нажатии */
             -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
         }
         
@@ -392,7 +391,7 @@ const app = {
 
     getStandardName: (n) => {
         if (!n) return "";
-        // Крым жестко закреплен за Россией (1 задача)
+        // Крым жестко закреплен за Россией
         if (n === "Russian Federation" || n.includes("Crimea")) return "Russia"; 
         
         if (n === "United States of America") return "USA";
@@ -416,7 +415,7 @@ const app = {
     init: () => {
         app.map = L.map('map', { center: [20, 0], zoom: 2, zoomControl: false, attributionControl: false, tap: false });
         
-        // Логика Touch & Hold (3 задача)
+        // Логика Touch & Hold
         const handleDown = (e) => {
             if (app.isLocked) {
                 app.isHolding = true;
@@ -544,13 +543,12 @@ const app = {
             app.solved++;
             document.getElementById('current-score').innerText = app.solved; 
             app.saveProgress();
-            app.timer = setTimeout(() => app.skipDelay(), 3000); // Унифицированная 3-х секундная задержка
+            app.timer = setTimeout(() => app.skipDelay(), 3000); 
         } else {
             // ОШИБКА
             app.setCountryStyle(name, { fillColor: CONFIG.colors.incorrect });
-            app.setCountryStyle(app.target, { fillColor: CONFIG.colors.hint }); // Голубой цвет правильной страны (2 задача)
+            app.setCountryStyle(app.target, { fillColor: CONFIG.colors.hint }); 
             
-            // Если режим не Названия - подсказываем правильную страну синим цветом (2 задача)
             if (app.mode !== 'name') {
                 const targetEl = document.getElementById('target-name');
                 targetEl.innerHTML = `<span style="color:var(--incorrect)">Ошибка:</span> <span style="color:var(--target-hint)">${DB[app.target].name}</span>`;
@@ -567,7 +565,7 @@ const app = {
             if (center) app.map.flyTo(center, app.map.getZoom(), { duration: 1.2 });
             
             app.queue.push(app.target);
-            app.timer = setTimeout(() => app.skipDelay(), 3000); // Унифицированная 3-х секундная задержка
+            app.timer = setTimeout(() => app.skipDelay(), 3000); 
         }
     },
 
@@ -605,7 +603,6 @@ const app = {
             });
             document.getElementById('info-overlay').style.display = 'none';
             
-            // Легкая задержка перед следующим вопросом (устраняет ложные срабатывания кликов)
             setTimeout(() => {
                 app.nextQuestion();
             }, 50);
