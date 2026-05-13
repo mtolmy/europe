@@ -19,14 +19,12 @@
         
         * { box-sizing: border-box; touch-action: manipulation; }
         
-        /* ФИКС 1: Жесткая привязка высоты для iOS */
         body, html { 
             margin: 0; padding: 0; width: 100%; 
             height: 100%; height: -webkit-fill-available;
             font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text); overflow: hidden; 
         }
         
-        /* ФИКС 2: Динамическая высота (100dvh), чтобы Safari не перекрывал низ */
         .app-layout { 
             display: flex; flex-direction: column; 
             height: 100vh; height: 100dvh; 
@@ -34,7 +32,6 @@
         
         #map { height: 90%; width: 100%; background: #e2e8f0; z-index: 1; }
         
-        /* ФИКС 3: Усиленный отступ снизу с учетом Safe Area */
         #bottom-panel {
             height: 10%; background: var(--panel-bg); border-top: 1px solid #cbd5e1;
             display: flex; align-items: center; justify-content: space-between;
@@ -44,7 +41,7 @@
         
         #question-box { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
         #task-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 2px; }
-        #target-name { font-size: 16px; font-weight: 700; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #target-name { font-size: 16px; font-weight: 700; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.2s; }
         
         .right-controls { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; min-width: 80px; }
         #score-box { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 5px; }
@@ -155,6 +152,23 @@ const CONFIG = {
         incorrect: '#f87171',
         hint: '#60a5fa'
     }
+};
+
+// Координаты для карликовых и островных государств
+const DWARFS = {
+    "Vatican": [41.9029, 12.4534], "Monaco": [43.7384, 7.4246], "San Marino": [43.9424, 12.4578],
+    "Liechtenstein": [47.1660, 9.5554], "Andorra": [42.5063, 1.5218], "Malta": [35.9375, 14.3754],
+    "Maldives": [3.2028, 73.2207], "Bahrain": [26.0667, 50.5577], "Singapore": [1.3521, 103.8198],
+    "Seychelles": [-4.6796, 55.4920], "Sao Tome and Principe": [0.1864, 6.6131],
+    "Comoros": [-11.8750, 43.8722], "Cabo Verde": [16.5388, -23.0418],
+    "Saint Kitts and Nevis": [17.3578, -62.7830], "Antigua and Barbuda": [17.0608, -61.7964],
+    "Dominica": [15.4150, -61.3710], "Saint Lucia": [13.9094, -60.9789],
+    "Barbados": [13.1939, -59.5432], "Saint Vincent": [13.2528, -61.1971],
+    "Grenada": [12.1165, -61.6790], "Tuvalu": [-8.5147, 179.1940],
+    "Nauru": [-0.5228, 166.9315], "Palau": [7.5150, 134.5825],
+    "Marshall Islands": [7.1315, 171.1845], "Micronesia": [6.8874, 158.2150],
+    "Kiribati": [1.4518, 173.0030], "Samoa": [-13.7590, -172.1046],
+    "Tonga": [-21.1790, -175.1982], "Vanuatu": [-15.3767, 166.9592]
 };
 
 const DB = {
@@ -371,7 +385,7 @@ const app = {
     map: null, geoLayer: null, geoData: null,
     mode: 'name', reg: 'Europe',
     queue: [], solved: 0, target: null,
-    isLocked: false, timer: null, layers: {},
+    isLocked: false, timer: null, layers: {}, // layers теперь объект массивов слоев
 
     getStandardName: (n) => {
         if (!n) return "";
@@ -395,7 +409,6 @@ const app = {
     },
 
     init: () => {
-        // ФИКС 4: Отключение встроенного перехвата тапов Leaflet для iOS PWA (tap: false)
         app.map = L.map('map', { center: [20, 0], zoom: 2, zoomControl: false, attributionControl: false, tap: false });
         
         fetch('https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/DATA/world.geojson')
@@ -436,26 +449,57 @@ const app = {
         } catch(e) { app.initNewGame(); }
     },
 
+    setCountryStyle: (name, style) => {
+        if (app.layers[name]) {
+            app.layers[name].forEach(layer => layer.setStyle(style));
+        }
+    },
+
     startGame: (isResumed) => {
         document.getElementById('start-overlay').style.opacity = '0';
         setTimeout(() => document.getElementById('start-overlay').style.display = 'none', 300);
 
         if(app.geoLayer) app.map.removeLayer(app.geoLayer);
+        
+        // Очищаем слои
+        for (let key in app.layers) {
+            app.layers[key].forEach(l => app.map.removeLayer(l));
+        }
         app.layers = {};
 
         app.geoLayer = L.geoJson(app.geoData, {
             style: { fillColor: CONFIG.colors.default, weight: 1, color: CONFIG.colors.border, fillOpacity: 1 },
             onEachFeature: (f, l) => {
                 const name = app.getStandardName(f.properties.name);
-                app.layers[name] = l;
-                const dbData = DB[name];
+                if (!app.layers[name]) app.layers[name] = [];
+                app.layers[name].push(l); // Собираем все полигоны страны (вкл. Крым для России)
                 
+                const dbData = DB[name];
                 if (app.reg === 'World' || (dbData && dbData.reg === app.reg)) {
-                    if(!isResumed && dbData) app.queue.push(name);
+                    if(!isResumed && dbData && !app.queue.includes(name)) app.queue.push(name);
                 }
                 l.on('click', () => app.handleSelect(name, l));
             }
         }).addTo(app.map);
+
+        // Добавляем карликовые государства
+        for (let name in DWARFS) {
+            const dbData = DB[name];
+            if (app.reg === 'World' || (dbData && dbData.reg === app.reg)) {
+                if(!isResumed && dbData && !app.queue.includes(name)) app.queue.push(name);
+                
+                const circle = L.circleMarker(DWARFS[name], {
+                    radius: 6, weight: 1, color: CONFIG.colors.border,
+                    fillColor: CONFIG.colors.default, fillOpacity: 1
+                });
+                
+                if (!app.layers[name]) app.layers[name] = [];
+                app.layers[name].push(circle);
+                
+                circle.on('click', () => app.handleSelect(name, circle));
+                circle.addTo(app.map);
+            }
+        }
 
         if(!isResumed) app.queue.sort(() => Math.random() - 0.5);
         document.getElementById('total-count').innerText = app.queue.length + app.solved;
@@ -464,32 +508,44 @@ const app = {
         app.nextQuestion();
     },
 
-    handleSelect: (name, layer) => {
+    handleSelect: (name, clickedLayer) => {
         if (app.isLocked || !app.target) return;
         app.isLocked = true; 
 
         if (name === app.target) {
             // ВЕРНО
-            layer.setStyle({ fillColor: CONFIG.colors.correct });
+            app.setCountryStyle(name, { fillColor: CONFIG.colors.correct });
             app.showInfo(name);
             app.solved++;
+            document.getElementById('current-score').innerText = app.solved; // Обновляем счетчик сразу!
             app.saveProgress();
             app.timer = setTimeout(app.nextQuestion, 2500);
         } else {
             // ОШИБКА
-            layer.setStyle({ fillColor: CONFIG.colors.incorrect });
-            const targetLayer = app.layers[app.target];
-            if (targetLayer) {
-                targetLayer.setStyle({ fillColor: CONFIG.colors.hint });
-                
-                // Перелёт к верной стране без зума
-                const center = targetLayer.getBounds ? targetLayer.getBounds().getCenter() : targetLayer.getLatLng();
-                app.map.flyTo(center, app.map.getZoom(), { duration: 1.2 });
+            app.setCountryStyle(name, { fillColor: CONFIG.colors.incorrect });
+            app.setCountryStyle(app.target, { fillColor: CONFIG.colors.hint });
+            
+            // Если режим не Названия - подсказываем словами
+            if (app.mode !== 'name') {
+                const targetEl = document.getElementById('target-name');
+                targetEl.innerHTML = `<span style="color:var(--incorrect)">Ошибка:</span> Это ${DB[app.target].name}`;
             }
+
+            let center;
+            // Фикс для Фиджи, чтобы не мотало через весь глобус
+            if (app.target === "Fiji") {
+                center = [-17.7134, 178.0650]; 
+            } else if (app.layers[app.target] && app.layers[app.target].length > 0) {
+                const targetLayer = app.layers[app.target][0];
+                center = targetLayer.getBounds ? targetLayer.getBounds().getCenter() : targetLayer.getLatLng();
+            }
+
+            if (center) app.map.flyTo(center, app.map.getZoom(), { duration: 1.2 });
+            
             app.queue.push(app.target);
             app.timer = setTimeout(() => {
-                layer.setStyle({ fillColor: CONFIG.colors.default });
-                if(targetLayer) targetLayer.setStyle({ fillColor: CONFIG.colors.default });
+                app.setCountryStyle(name, { fillColor: CONFIG.colors.default });
+                app.setCountryStyle(app.target, { fillColor: CONFIG.colors.default });
                 app.nextQuestion();
             }, 3000);
         }
@@ -497,8 +553,15 @@ const app = {
 
     nextQuestion: () => {
         app.isLocked = false;
-        if (app.queue.length === 0 && app.solved > 0) {
-            document.getElementById('target-name').innerText = "🏆 Победа! Все найдено.";
+        
+        // Фикс финального счетчика
+        document.getElementById('current-score').innerText = app.solved;
+        
+        if (app.queue.length === 0) {
+            const targetEl = document.getElementById('target-name');
+            targetEl.innerText = "🏆 Отличный результат!";
+            targetEl.style.color = "var(--correct)";
+            app.target = null;
             try { localStorage.removeItem('geoSavePro'); } catch(e){}
             return;
         }
@@ -511,9 +574,13 @@ const app = {
     skipDelay: () => {
         if (app.isLocked) {
             clearTimeout(app.timer);
-            Object.values(app.layers).forEach(l => {
-                const c = l.options.fillColor;
-                if (c === CONFIG.colors.incorrect || c === CONFIG.colors.hint) l.setStyle({ fillColor: CONFIG.colors.default });
+            Object.values(app.layers).forEach(layerArray => {
+                layerArray.forEach(l => {
+                    const c = l.options.fillColor;
+                    if (c === CONFIG.colors.incorrect || c === CONFIG.colors.hint) {
+                        l.setStyle({ fillColor: CONFIG.colors.default });
+                    }
+                });
             });
             document.getElementById('info-overlay').style.display = 'none';
             app.nextQuestion();
@@ -523,6 +590,7 @@ const app = {
     updateUI: () => {
         document.getElementById('current-score').innerText = app.solved;
         if (!app.target) return;
+        
         const d = DB[app.target] || { name: app.target, cap: "?", flag: "🏳️" };
         
         let txt = "";
@@ -530,7 +598,9 @@ const app = {
         else if (app.mode === 'cap') txt = "Столица: " + d.cap;
         else txt = "Чей флаг? " + d.flag;
         
-        document.getElementById('target-name').innerText = txt;
+        const targetEl = document.getElementById('target-name');
+        targetEl.style.color = "var(--accent)"; // Сбрасываем цвет после ошибки
+        targetEl.innerText = txt;
     },
 
     showInfo: (name) => {
